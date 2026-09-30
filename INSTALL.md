@@ -27,7 +27,7 @@ If one is missing, tell the user and stop.
 
 1. Clone the repo if it is not on disk yet (the user picks the folder):
    ```bash
-   git clone <repo-url> study-skills
+   git clone https://github.com/kleyver14/study-skills.git study-skills
    cd study-skills
    ```
 2. Check for an existing installation:

@@ -18,7 +18,7 @@ te quedaste.
 Requisitos: Claude Code y Python 3.9 o más nuevo (`python3`). No hay que instalar nada más.
 
 ```bash
-git clone <url-del-repo> study-skills
+git clone https://github.com/kleyver14/study-skills.git study-skills
 cd study-skills
 ./install.sh            # copia las skills en ~/.claude/skills/
 # ./install.sh --link   # o enlaza, para que `git pull` las actualice
