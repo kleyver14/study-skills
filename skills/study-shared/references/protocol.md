@@ -76,10 +76,15 @@ default (text, since it has 20-25 questions) unless the user asks for clicks.
 Choice questions go through `AskUserQuestion`.
 
 - **Batches of up to 3 questions, plus 1 guess question**, in one call (the tool takes 4). The
-  guess question is multi-select: *"¿Cuáles respondiste adivinando?"* (plan's language) with
-  one option per question in the batch (`P1`, `P2`, `P3`) plus *"Ninguna"*. That is how `?` is
-  marked here.
-- Question `header`: the global number (`P7`). Option `label`: the letter and the option text
+  guess question is multi-select: *"Which ones did you answer by guessing?"* (in the questions'
+  language) with *"None"* **first**, then one option per question in the batch (`Q1`, `Q2`,
+  `Q3`). That is how `?` is marked here. *None* is always there, so a batch never has more
+  than 3 questions.
+- **A guess question left blank means nothing was guessed.** Take it as *None*, say so in one
+  line at grading, and never re-ask it in a later batch: each guess question covers only its own
+  batch.
+- Question `header`: the global number, with the abbreviation of the questions' language
+  (`Q7` in English, `P7` in Spanish or Portuguese). Option `label`: the letter and the option text
   (`B. Amazon S3 Glacier`); if the text is long, the letter plus a short form in the label and
   the full text in `description`, **the same way for every option** of that question.
 - Multiple response (`N:K`): `multiSelect: true`, and say in the question text how many to pick.
