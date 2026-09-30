@@ -2,14 +2,11 @@
 
 The templates in `templates/` use `{{h_*}}` for short labels and `{{txt_*}}` for fixed prose.
 Fill them from this file using the plan's `language:`. Do not translate them yourself: that is
-what this file is for, and it keeps every plan consistent. If the language is not here, use `en`
-and tell the user.
+what this file is for, and it keeps every plan consistent. If the language is not here, follow
+`language.md`, *Supported languages*.
 
-**Spanish is neutral Spanish.** For `es`, address the user as *tú* and never use voseo
-(*tenés, podés, marcá, quedate*) or regionalisms (*de a uno, acá, chequear, rendir un examen*).
-This holds for everything written into a plan and everything said to the user, even when the
-user writes with voseo or a regional variety: plans get shared. Use a regional variety only if
-the user explicitly asks for it, and record that in the plan's `language:` note.
+Which language goes where (plan vs conversation, unsupported languages, neutral Spanish) is in
+`language.md`.
 
 `study_state.py check` fails on any `{{placeholder}}` left in a plan, so every key used by a
 template must exist below.

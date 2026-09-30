@@ -82,18 +82,21 @@ the user choose. Mocks take the real exam's duration, even beyond `session_minut
 
 If screen 3 would exceed 4 questions, move question 8 to screen 4.
 
-## Screen 4 — location and language
+## Screen 4 — location
 
-9. **Where should I save it?** Propose `~/estudio/<slug>/` (or `~/study/<slug>/` for English
-   speakers) and `./<slug>/`; accept any path.
-10. **Language of the plan?** Default: the language the user is speaking right now.
+9. **Where should I save it?** Propose `~/study/<slug>/` (or the plan language's word for it, e.g.
+   `~/estudio/<slug>/`) and `./<slug>/`; accept any path.
+
+**No language question.** The plan language is inferred from the request (`language.md`). Ask it
+here only when `language.md` says it is genuinely unclear; then it joins this screen.
 
 ## Conversational — summary and confirmation
 
 One screen with everything decided: goal, sources (with kinds), syllabus size, horizon, cadence,
 sessions available vs needed, buffer count, diagnostic mode, practice level per area, how they
 authenticate, video platforms and the proposed courses, milestones and checkpoints, path,
-language. Generate only after an explicit yes.
+and one line *"Files in: <language>"* so the user can change it. Generate only after an explicit
+yes.
 
 ## Diagnostic by declared level
 

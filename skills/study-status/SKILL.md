@@ -19,8 +19,7 @@ PLAN=$(python3 $SS registry resolve $SLUG) && python3 $SS status "$PLAN" && pyth
 
 ## Default — summary
 
-Turn the JSON into a short, honest picture in the plan's language (for `es`, neutral Spanish
-with *tú*, no voseo):
+Turn the JSON into a short, honest picture in the user's language (`language.md`):
 
 - next session (number, title, status, planned date) · progress `closed/total`
 - drift: on track / N behind / N ahead, and what that means for the horizon

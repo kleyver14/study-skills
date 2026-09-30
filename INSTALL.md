@@ -1,86 +1,92 @@
-# Instalación — instrucciones para el agente
+# Installation — instructions for the agent
 
-> Si eres un agente (Claude Code) y te pasaron este repo para instalarlo, sigue estos pasos en
-> orden. Si eres una persona, el [README](README.md) tiene lo mismo más corto.
+> If you are an agent (Claude Code) and were handed this repo to install, follow these steps in
+> order. If you are a person, the [README](README.md) has the same, shorter. Talk to the user in
+> their language throughout.
 
-## Qué se instala
+## What gets installed
 
-Seis carpetas de skills en `~/.claude/skills/`:
+Six skill folders in `~/.claude/skills/`:
 `study-shared`, `study-new`, `study-next`, `study-eval`, `study-close`, `study-status`.
-No se instalan dependencias ni paquetes, no se tocan configuraciones y nada sale del disco local.
-Los planes del usuario viven donde elija, y el registro de planes en `~/.study/`.
+No dependencies or packages are installed, no settings are changed, and nothing leaves the local
+disk. The user's plans live wherever they choose; the plan registry lives in `~/.study/`.
 
-## Requisitos (verifícalos antes de instalar)
+## Requirements (check them before installing)
 
-1. **Claude Code** (terminal, app de escritorio o web con repo local). Las skills usan la
-   herramienta `AskUserQuestion`: no están pensadas para Cursor, Codex ni `~/.agents/skills/`.
-2. **Python 3.9 o más nuevo** como `python3`, solo biblioteca estándar:
+1. **Claude Code** (terminal, desktop app, or web with a local repo). The skills use the
+   `AskUserQuestion` tool: they are not meant for Cursor, Codex or `~/.agents/skills/`.
+2. **Python 3.9 or newer** as `python3`, standard library only:
    ```bash
    python3 --version
    ```
-3. **bash** para `install.sh` (macOS y Linux lo traen; en Windows, usar WSL o Git Bash).
+3. **bash** for `install.sh` (macOS and Linux ship it; on Windows, use WSL or Git Bash).
 
-Si falta alguno, díselo al usuario y no sigas.
+If one is missing, tell the user and stop.
 
-## Pasos
+## Steps
 
-1. Clonar el repo, si todavía no está en disco (el usuario elige la carpeta):
+1. Clone the repo if it is not on disk yet (the user picks the folder):
    ```bash
-   git clone <url-del-repo> study-skills
+   git clone <repo-url> study-skills
    cd study-skills
    ```
-2. Revisar si ya hay una versión instalada:
+2. Check for an existing installation:
    ```bash
    ls -d ~/.claude/skills/study-* 2>/dev/null
    ```
-   Si aparece algo, **pregúntale al usuario** antes de reemplazarlo. Con su aprobación, usa
-   `--force`: el script mueve la versión anterior a `~/.study/backup/skills-<fecha>/`, no la borra.
-3. Instalar. Elige el modo con el usuario:
-   - **Copia** (por defecto): queda independiente del repo.
+   If anything shows up, **ask the user** before replacing it. With their approval, use
+   `--force`: the script moves the previous version to `~/.study/backup/skills-<date>/`, it does
+   not delete it.
+3. Install. Choose the mode with the user:
+   - **Copy** (default): independent from the repo.
      ```bash
      ./install.sh
      ```
-   - **Enlace** (`--link`): symlinks al repo; un `git pull` actualiza las skills. Útil si el usuario
-     va a modificarlas o seguir las actualizaciones. No mover ni borrar el repo después.
+   - **Link** (`--link`): symlinks into the repo; a `git pull` updates the skills. Useful if the
+     user will modify them or wants to follow updates. Do not move or delete the repo afterwards.
      ```bash
      ./install.sh --link
      ```
-4. Verificar. El script ya lo hace al final; para repetirlo:
+4. Verify. The script already does it at the end; to repeat it:
    ```bash
    ./install.sh --check
    ```
-   Tiene que listar las seis skills con `ok` y terminar con `study_state.py runs: ok`.
-5. Opcional, recomendado si se instaló con `--link` o se modificó algo:
+   It must list the six skills with `ok` and end with `study_state.py runs: ok`.
+5. Optional, recommended when installed with `--link` or after changing anything:
    ```bash
    cd tests && python3 -m unittest test_study_state test_verify_links test_platzi
    ```
-   Corre sin red (usa un servidor HTTP local y fixtures sintéticas).
-6. Dile al usuario, en su idioma:
-   - que **abra una sesión nueva de Claude Code** (las skills se cargan al iniciar) y empiece con
-     `/study-new`, o simplemente con "quiero armar un plan de estudio para …";
-   - los cinco comandos y el ciclo `/study-next` → estudiar → `/study-eval` → `/study-close`
-     (tabla *Uso* del README);
-   - **cómo se responden las evaluaciones**: `/study-eval --clicks` para elegir opciones con un
-     clic, `/study-eval --text` para todas las preguntas en un mensaje. Sin flag: clics hasta 12
-     preguntas, texto en simulacros y diagnósticos. También se puede pedir con palabras.
+   It runs offline (a local HTTP server and synthetic fixtures).
+6. Tell the user, in their language:
+   - to **open a new Claude Code session** (skills load at startup) and start with `/study-new`,
+     or just with "I want to build a study plan for …";
+   - the five commands and the cycle `/study-next` → study → `/study-eval` → `/study-close`
+     (the README's *Usage* table);
+   - **how evaluations are answered**: `/study-eval --clicks` to click the options,
+     `/study-eval --text` for every question in one message. Without a flag: clicks up to 12
+     questions, text for mocks and diagnostics. Saying it in words works too;
+   - **languages**: the plan's files are written in the language the plan is requested in (or
+     the one they ask for explicitly), and the conversation follows whatever language they write
+     in. Spanish, English and Portuguese have fixed texts; other languages get English labels or a
+     one-time translation.
 
-## Actualizar
+## Update
 
-- Instalado con `--link`: `git pull` en el repo, nada más.
-- Instalado por copia: `git pull` y después `./install.sh --force`.
+- Installed with `--link`: `git pull` in the repo, nothing else.
+- Installed as a copy: `git pull`, then `./install.sh --force`.
 
-Los planes existentes no se modifican al actualizar.
+Existing plans are not modified by an update.
 
-## Desinstalar
+## Uninstall
 
 ```bash
 ./install.sh --uninstall
 ```
 
-Quita solo las seis carpetas `study-*`. **No** toca los planes del usuario ni `~/.study/`; si el
-usuario también quiere borrar eso, que lo haga él.
+Removes only the six `study-*` folders. It does **not** touch the user's plans or `~/.study/`; if
+the user wants those gone too, they delete them themselves.
 
-## Instalación manual (sin `install.sh`)
+## Manual installation (without `install.sh`)
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -88,12 +94,12 @@ cp -R skills/study-* ~/.claude/skills/
 python3 ~/.claude/skills/study-shared/scripts/study_state.py today
 ```
 
-El último comando tiene que imprimir la fecha de hoy (`YYYY-MM-DD`).
+The last command must print today's date (`YYYY-MM-DD`).
 
-## Variables de entorno (opcionales)
+## Environment variables (optional)
 
-| Variable | Para qué |
+| Variable | Purpose |
 |---|---|
-| `CLAUDE_SKILLS_DIR` | Instalar en otra carpeta que no sea `~/.claude/skills` (`install.sh`) |
-| `STUDY_HOME` | Usar otra carpeta en lugar de `~/.study` para el registro y la caché |
-| `STUDY_TODAY` | Fijar "hoy" en `YYYY-MM-DD` (pruebas) |
+| `CLAUDE_SKILLS_DIR` | Install somewhere other than `~/.claude/skills` (`install.sh`) |
+| `STUDY_HOME` | Use another folder instead of `~/.study` for the registry and cache |
+| `STUDY_TODAY` | Pin "today" to `YYYY-MM-DD` (tests) |

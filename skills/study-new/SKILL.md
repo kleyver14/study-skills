@@ -1,6 +1,6 @@
 ---
 name: study-new
-description: Create a complete, operable study plan for ANY topic — a certification or exam, a technology or framework, a book or a course — with any duration and cadence. Interviews the user (goal, sources, deadline exact or vague, days per week, current level, practice access, video platform, follow-up, path, language), builds the syllabus from official sources or the user's material, runs a diagnostic or prerequisite check, and generates PLAN.md plus one file per session with verified readings, analogies, videos from the user's course platform, optional practice and evaluations. Use it whenever someone says they want to study, learn, prepare for an exam or certification, "armar un plan de estudio", "quiero aprender X", "tengo que certificarme", or asks how to organize their learning — even if they do not say "plan". Also use it to start a second plan alongside an existing one.
+description: Create a complete, operable study plan for ANY topic — a certification or exam, a technology or framework, a book or a course — with any duration and cadence. Interviews the user (goal, sources, deadline exact or vague, days per week, current level, practice access, video platform, follow-up, path; the files' language is inferred from the request), builds the syllabus from official sources or the user's material, runs a diagnostic or prerequisite check, and generates PLAN.md plus one file per session with verified readings, analogies, videos from the user's course platform, optional practice and evaluations. Use it whenever someone says they want to study, learn, prepare for an exam or certification, "armar un plan de estudio", "quiero aprender X", "tengo que certificarme", or asks how to organize their learning — even if they do not say "plan". Also use it to start a second plan alongside an existing one.
 ---
 
 # /study-new — create a plan
@@ -19,7 +19,8 @@ conversation so far; confirm rather than re-ask.
 SHARED="$HOME/.claude/skills/study-shared"; SS="$SHARED/scripts/study_state.py"
 ```
 
-Read now: `$SHARED/references/frontmatter.md` and `$SHARED/references/interview.md`.
+Read now: `$SHARED/references/frontmatter.md`, `$SHARED/references/interview.md` and
+`$SHARED/references/language.md`.
 Read before the diagnostic: `$SHARED/references/protocol.md`. The diagnostic follows its
 *Answer positions* and *Delivery* rules like any evaluation.
 Read before generating: `$SHARED/references/practice-levels.md`, `$SHARED/references/labels.md`
@@ -38,7 +39,8 @@ tool is unavailable.
 4. **Reality check** (conversation). A fixed horizon that does not fit makes the user choose.
 5. Screen 3: practice access per area (plus how they authenticate, if a `live` area is remote) ·
    video platform · external follow-up and its dates.
-6. Screen 4: path · language.
+6. Screen 4: path. The plan language is inferred, not asked (`language.md`); it is confirmed
+   in the summary.
 7. **Summary and confirmation.** Explicit yes → Step 3.
 
 ## Step 2 — diagnostic or prerequisite check
@@ -63,8 +65,9 @@ is what makes progress measurable later.
    → index → assignment). If Platzi blocks, carry on without videos and set
    `videos_status: unavailable`.
 5. **Write the files** from `$SHARED/templates/`. Fill every `{{h_*}}`, `{{txt_*}}` and
-   `{{tbl_*}}` from `labels.md` in the plan's language (do not translate them yourself), and every
-   content placeholder with real content. For each session:
+   `{{tbl_*}}` from `labels.md` in the plan's language (do not translate them yourself, except
+   as `language.md` allows for an unsupported language), and every content placeholder with
+   real content. For each session:
    - *why it matters*, tied to the user's goal;
    - the checklist;
    - **readings that cover every checklist item**: each item needs at least one reading that
@@ -98,7 +101,7 @@ is what makes progress measurable later.
   `verify_links.py`.
 - Every checklist item has a reading, and every claim is backed by one.
 - Every session's analogy is specific to its topic.
-- Content is in the user's language; file names, keys and markers are not translated.
+- Content is in the plan's language; file names, keys and markers are not translated.
 
-Write in the plan's language. For `es`, neutral Spanish with *tú*: no voseo, no regionalisms
-(`labels.md`). Keep the tone of someone who will still be there in week 3.
+Write files in the plan's language and talk in the user's (`language.md`). Keep the tone of
+someone who will still be there in week 3.

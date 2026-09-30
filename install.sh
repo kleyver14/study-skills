@@ -80,6 +80,8 @@ Open a new Claude Code session, then:
                     e.g. /study-eval mock --clicks
   /study-close    close the session with your own notes
   /study-status   progress, projected end, switch plan, replan
+
+Files are written in the language you ask in; the conversation follows yours.
 USAGE
         ;;
 esac

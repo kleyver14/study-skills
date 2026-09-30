@@ -77,5 +77,4 @@ session's `weak` region, downgrade that area's `practice_level` in the remaining
 (`set … practice_level=sandbox` or `none`), and stop proposing that access
 (`$SHARED/references/practice-levels.md`).
 
-Speak in the plan's language (`language:` in PLAN.md). For `es`, neutral Spanish with *tú*: no
-voseo, no regionalisms (`labels.md`).
+Language: files in the plan's language, conversation in the user's (`language.md`).

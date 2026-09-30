@@ -2,7 +2,7 @@
 # Plan configuration, machine-read by study_state.py. Edit values, keep keys.
 slug: {{slug}}
 topic: {{topic}}
-language: {{language}}              # es | en | pt: content language of this plan
+language: {{language}}              # es | en | pt (see language.md): content language of this plan
 goal_type: {{goal_type}}            # exam | tool | course | other
 horizon: {{horizon}}                # fixed | flexible | open
 target_date: {{target_date}}        # YYYY-MM-DD when horizon=fixed, else null

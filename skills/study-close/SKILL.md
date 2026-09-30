@@ -60,5 +60,7 @@ paste wherever they report. **Do not publish it anywhere yourself.**
 ## Step 4 — hand off
 
 Run `python3 $SS status "$PLAN"` and say in one line where they stand and what `/study-next` will
-open. Speak in the plan's language. For `es`, neutral Spanish with *tú*: no voseo, no regionalisms
-(`labels.md`).
+open.
+
+Language: files in the plan's language, conversation in the user's (`language.md`). The notes keep
+the user's own words, untranslated.

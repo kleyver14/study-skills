@@ -1,580 +1,605 @@
-# Diseño — familia de skills `study-*`
+# Design — the `study-*` skill family
 
-> Especificación aprobada en conversación el 2026-09-11. Es la fuente de verdad para construir
-> las skills. Si algo de la implementación contradice este documento, gana el documento o se
-> actualiza el documento primero.
+> Specification approved in conversation on 2026-09-11. It is the source of truth for building
+> the skills. If anything in the implementation contradicts this document, the document wins, or
+> the document is updated first.
 
-## 1. Propósito
+## 1. Purpose
 
-Permitir que cualquier persona construya y opere un plan de estudio sobre **cualquier tema**,
-con **cualquier duración y cadencia**, con la misma disciplina que tuvo un plan real de AWS
-CLF-C02 armado a mano: temario sacado de fuentes verificadas, sesiones con material y
-práctica, evaluaciones con umbral, corrección de errores uno por uno, apuntes con las palabras
-del usuario, y seguimiento del avance legible por cualquier sesión futura.
+Let anyone build and run a study plan on **any topic**, with **any duration and cadence**, with
+the same discipline as a real AWS CLF-C02 plan put together by hand: a syllabus taken from
+verified sources, sessions with material and practice, evaluations with a threshold, errors
+corrected one at a time, notes in the user's own words, and progress tracking that any future
+session can read.
 
-Ese plan fue el **ejemplo de referencia**, no el molde. Las plantillas no contienen nada
-específico de AWS.
+That plan was the **reference example**, not the mould. The templates contain nothing specific
+to AWS.
 
-## 2. Decisiones de alcance
+## 2. Scope decisions
 
-| Decisión | Valor | Consecuencia |
+| Decision | Value | Consequence |
 |---|---|---|
-| Audiencia | Cualquier persona, sola o en equipo | Se instala en `~/.claude/skills/` con `install.sh` |
-| Plataforma | **Solo Claude Code** (terminal, escritorio, web) | Usa `AskUserQuestion`. No instalable en `~/.agents/skills/` para Cursor/Codex |
-| Ciclo de vida | Genera **y** opera | Familia de comandos, no una skill generadora sola |
-| Fuentes | Cascada: oficial → aportada por el usuario → construida y validada | Nunca se inventan URLs; todo link se verifica antes de escribirse |
-| Integraciones | **Solo archivos locales** | Sin Jira ni Slack. Los resúmenes de cierre quedan listos para copiar |
-| Ubicación del plan | La skill propone rutas y el usuario puede escribir la suya | Registro central en `~/.study/` |
-| Unidad de tiempo | **La sesión, no el día** | Cadencia libre; los archivos no llevan fecha en el nombre |
-| Seguimiento externo | **Opcional** | Sin hitos externos, la skill propone puntos de control internos rechazables |
-| Horizonte | Exacto, aproximado ("unos 3 meses") o inexistente | Fin fijo · fin flexible con semana objetivo · fin abierto |
-| Idioma | Estructura en inglés; contenido en el idioma del usuario | `PLAN.md`, `sessions/`, `session-NN-…` son identificadores estables |
-| Videos | Platzi + pegado manual; opcionales pero no descartables | El tiempo de la sesión es solo de lecturas. Ver §12 |
+| Audience | Anyone, alone or in a team | Installed in `~/.claude/skills/` with `install.sh` |
+| Platform | **Claude Code only** (terminal, desktop, web) | Uses `AskUserQuestion`. Not installable in `~/.agents/skills/` for Cursor/Codex |
+| Lifecycle | Generates **and** runs | A family of commands, not a single generator skill |
+| Sources | Cascade: official → provided by the user → built and validated | URLs are never made up; every link is verified before it is written |
+| Integrations | **Local files only** | No Jira or Slack. Closure summaries are left ready to copy |
+| Plan location | The skill proposes paths and the user can type their own | Central registry in `~/.study/` |
+| Unit of time | **The session, not the day** | Free cadence; file names carry no date |
+| External follow-up | **Optional** | Without external milestones, the skill proposes internal checkpoints the user can decline |
+| Horizon | Exact, approximate ("unos 3 meses", "about 3 months") or none | Fixed end · flexible end with a target week · open end |
+| Language | Structure in English; content in the plan language (inferred from the request, see `references/language.md`) | `PLAN.md`, `sessions/`, `session-NN-…` are stable identifiers |
+| Videos | Platzi + manual paste; optional but not dismissable | Session time counts readings only. See §12 |
 
-## 3. Arquitectura
+## 3. Architecture
 
-### 3.1 Familia de skills
+### 3.1 Skill family
 
 ```
-study-new      entrevista → temario validado → diagnóstico según nivel → genera el plan
-study-next     abre la próxima sesión pendiente; mide deriva; dispara recuperación
-study-eval     arma y corrige evaluaciones con el protocolo
-study-close    cierra la sesión con apuntes; cierra bloques
-study-status   estado, deriva, proyección; cambio de plan activo; replan
-study-shared   templates + references. No invocable por el usuario
+study-new      interview → validated syllabus → diagnostic by level → generates the plan
+study-next     opens the next pending session; measures drift; triggers recovery
+study-eval     builds and grades evaluations following the protocol
+study-close    closes the session with notes; closes blocks
+study-status   state, drift, projection; switch the active plan; replan
+study-shared   templates + references. Not user-invocable
 ```
 
-Patrón idéntico a `sdd-*`: cada `SKILL.md` es corto y carga solo lo que su comando necesita;
-las plantillas y referencias viven una sola vez en `study-shared`.
+Same pattern as `sdd-*`: each `SKILL.md` is short and loads only what its command needs; the
+templates and references live once, in `study-shared`.
 
-Los `SKILL.md` se escriben en **inglés** (estilo de la casa). Todo lo que se genera para el
-usuario va en el idioma que eligió.
+The `SKILL.md` files are written in **English** (house style). Everything generated for the user
+goes in the plan language.
 
-### 3.2 Registro de planes
+### 3.2 Plan registry
 
 ```
 ~/.study/
-├── plans      una línea por plan:   <slug><TAB><ruta absoluta>
-└── active     el slug del plan activo (una línea)
+├── plans      one line per plan:   <slug><TAB><absolute path>
+└── active     the slug of the active plan (one line)
 ```
 
-Texto plano, sin dependencias. `study-next` y `study-status` lo leen; `study-new` lo escribe;
-`study-status` puede cambiar `active`. Si hay varios planes y `active` está vacío, se pregunta.
+Plain text, no dependencies. `study-next` and `study-status` read it; `study-new` writes it;
+`study-status` can change `active`. If there are several plans and `active` is empty, ask.
 
-### 3.3 Frontmatter de sesión — única fuente de verdad del estado
+### 3.3 Session frontmatter — single source of truth for state
 
 ```yaml
 ---
-session: 7                    # entero, 1-based
-slug: eloquent-relaciones     # corto, kebab-case, en el idioma del plan
+session: 7                    # integer, 1-based
+slug: eloquent-relaciones     # short, kebab-case, in the plan language
 status: pending               # pending | studied | evaluated | closed
-planned_date: 2026-09-22      # proyección; se reescribe al reproyectar
-actual_date: null             # fecha en que se abrió (status pasa a studied)
-block: 1                      # bloque o punto de control al que pertenece; 0 si no hay
-is_buffer: false              # sesión de colchón
-is_checkpoint: false          # cierra un bloque o punto de control
+planned_date: 2026-09-22      # projection; rewritten on re-projection
+actual_date: null             # date it was opened (status becomes studied)
+block: 1                      # block or checkpoint it belongs to; 0 if none
+is_buffer: false              # buffer session
+is_checkpoint: false          # closes a block or checkpoint
 eval_type: session            # session | checkpoint | mock | integrative | none
 eval_score: null              # "8/10"
 eval_passed: null             # true | false | null
-eval_attempts: 0              # primer intento + re-evaluaciones
+eval_attempts: 0              # first attempt + re-evaluations
 eval_date: null
-closed_date: null              # lo escribe study-close
+closed_date: null              # written by study-close
 practice_level: live          # live | sandbox | none
-video_minutes: 0              # suma de la sección Videos (§12); no entra en el tiempo de la sesión
+video_minutes: 0              # sum of the Videos section (§12); not part of the session time
 ---
 ```
 
-Semántica de `status`:
-- `pending` — no se abrió.
-- `studied` — se abrió y se entregó el material. **No** significa aprendida.
-- `evaluated` — la evaluación se aprobó (o no aplica).
-- `closed` — apuntes escritos.
+Meaning of `status`:
+- `pending` — not opened yet.
+- `studied` — opened and the material was delivered. It does **not** mean learned.
+- `evaluated` — the evaluation was passed (or does not apply).
+- `closed` — notes written.
 
-La sección *Estado actual* de `PLAN.md` se **regenera** a partir de estos encabezados cada vez
-que un comando escribe. Nunca se edita a mano.
+The *Current state* section of `PLAN.md` is **regenerated** from these headers every time a
+command writes. It is never edited by hand.
 
-## 4. `study-new` — crear un plan
+## 4. `study-new` — create a plan
 
-### 4.1 Entrevista
+### 4.1 Interview
 
-Con `AskUserQuestion`, hasta 4 preguntas por pantalla, siempre con la opción libre "Otro".
-Si la herramienta no está disponible, se pregunta lo mismo en texto plano.
+With `AskUserQuestion`, up to 4 questions per screen, always with the free "Other" option. If
+the tool is not available, the same is asked in plain text.
 
-**Pantalla 1 — Objetivo y fuentes**
-1. Qué quieres aprender y para qué → tipo de objetivo: `exam` · `tool` · `course` · `other`.
-2. ¿Existe una guía oficial? ¿Tienes material propio? → activa la cascada de fuentes.
+**Screen 1 — Goal and sources**
+1. What do you want to learn, and what for? → goal type: `exam` · `tool` · `course` · `other`.
+2. Is there an official guide? Do you have your own material? → activates the source cascade.
 
-**Paso conversacional — Temario propuesto.** La skill arma el temario desde las fuentes,
-lo muestra con áreas, subtemas y (si existen) pesos oficiales, y **lo itera con el usuario
-hasta que lo aprueba**. Nada se genera antes de esto.
+**Conversational step — Proposed syllabus.** The skill builds the syllabus from the sources,
+shows it with areas, subtopics and (if they exist) official weights, and **iterates it with the
+user until they approve it**. Nothing is generated before this.
 
-**Pantalla 2 — Tiempo y nivel**
-3. ¿Para cuándo? → fecha exacta (`fixed`) · aproximada (`flexible`, semana objetivo) · sin fecha (`open`).
-4. ¿Qué días o cuántas veces por semana, y cuánto por sesión? → cadencia y tamaño de sesión.
-5. ¿Empiezas de cero, sabes algo, o ya trabajas con esto? → determina el tipo de diagnóstico.
+**Screen 2 — Time and level**
+3. By when? → exact date (`fixed`) · approximate (`flexible`, target week) · no date (`open`).
+4. Which days or how many times a week, and how long per session? → cadence and session size.
+5. Are you starting from zero, do you know some of it, or do you already work with this? →
+   decides the type of diagnostic.
 
-**Paso conversacional — Verificación de realidad.** Sesiones disponibles = cadencia × horizonte.
-Sesiones necesarias = estimación por tamaño del temario. La skill dice si sobra, alcanza o
-falta, y en el último caso propone recortar temario, subir cadencia o extender horizonte.
-Con fin `open` este paso solo informa cuántas sesiones saldrán.
+**Conversational step — Reality check.** Available sessions = cadence × horizon. Needed
+sessions = estimate from the syllabus size. The skill says whether there is surplus, it fits,
+or it falls short, and in the last case proposes trimming the syllabus, raising the cadence or
+extending the horizon. With an `open` end this step only reports how many sessions there will be.
 
-**Pantalla 3 — Práctica y seguimiento**
-6. ¿A qué de esto tienes acceso real para practicar? → opciones = áreas del temario aprobado,
-   más "a nada", con selección múltiple. `AskUserQuestion` admite 4 opciones por pregunta:
-   si el temario tiene más de 4 áreas, se agrupan en hasta 4 grupos afines o se reparte en
-   varias preguntas de la misma pantalla. Define `practice_level` por área.
-7. ¿Tienes acceso a alguna plataforma de cursos? → Platzi · otra (pegas el índice) · ninguna.
-   Selección múltiple. Activa la búsqueda de videos (§12); "ninguna" no busca nada.
-8. ¿Alguien te hace seguimiento o tienes fechas de reporte? (*no es necesario*) → hitos
-   externos, o puntos de control internos propuestos (rechazables).
+**Screen 3 — Practice and follow-up**
+6. Which of these do you have real access to, for practice? → options = areas of the approved
+   syllabus, plus "none of it", multi-select. `AskUserQuestion` allows 4 options per question:
+   if the syllabus has more than 4 areas, they are grouped into up to 4 affinity groups or split
+   across several questions on the same screen. Defines `practice_level` per area.
+7. Do you have access to a course platform? → Platzi · another one (you paste the index) · none.
+   Multi-select. Activates the video lookup (§12); "none" looks up nothing.
+8. Does anyone track your progress, or do you have report dates? (*not required*) → external
+   milestones, or proposed internal checkpoints (which can be declined).
 
-**Pantalla 4 — Ubicación e idioma**
-9. ¿Dónde lo guardo? → propone `~/estudio/<slug>/`, `./<slug>/`, y acepta ruta libre.
-10. ¿En qué idioma? → default: el idioma en que el usuario está hablando.
+**Screen 4 — Location**
+9. Where should I save it? → proposes `~/study/<slug>/` (or the plan language's word for it), `./<slug>/`, and accepts a free path.
 
-**Paso conversacional — Resumen y confirmación.** Una pantalla con todo lo decidido. Solo
-con el "sí" se genera.
+**The plan language is not asked.** It is inferred from the user's request: an explicit request
+wins ("the files in English", "en español"); otherwise the language of the request itself; only
+if it is genuinely unclear (no text, mixed languages, only a proper name) is it asked, on this
+screen. It is confirmed in the summary screen. The conversation follows the language of the
+user's latest message; files stay in the plan language; `study-close` notes keep the user's own
+words, untranslated; Spanish is always neutral Spanish (*tú*, no voseo). Detail in
+`references/language.md`.
 
-**Se deriva sin preguntar:** colchón (10-15% de las sesiones, redondeado hacia arriba, mínimo
-1), umbrales por defecto, proyección de fechas, tamaño de las evaluaciones.
+**Conversational step — Summary and confirmation.** One screen with everything decided,
+including one line with the plan language (*"Files in: English"*) so the user can change it.
+Generation starts only on a "yes".
 
-**No se pregunta, deliberadamente:** estilo de aprendizaje, nivel de detalle, formato de
-evaluación. Un default bueno vale más que una pregunta más.
+**Derived without asking:** buffer (10-15% of the sessions, rounded up, minimum 1), default
+thresholds, date projection, evaluation size.
 
-### 4.2 Cascada de fuentes
+**Deliberately not asked:** learning style, level of detail, evaluation format. A good default
+is worth more than one more question.
 
-1. **Oficial** — si el objetivo es `exam` o `tool`, la skill busca la guía oficial (blueprint
-   de examen, documentación canónica, syllabus del curso). La extrae y la cita.
-2. **Aportada** — links, archivos e imágenes que el usuario entregue. Los links se verifican;
-   los archivos se copian a `<ruta>/material/`. Se **incorporan** al temario oficial, no lo
-   reemplazan.
-3. **Construida** — si no hay ni oficial ni aportada, la skill propone un temario desde su
-   conocimiento y lo marca como *construido*. Se valida con el usuario antes de seguir.
+### 4.2 Source cascade
 
-**Regla dura:** ningún link se escribe sin verificar que responde (HTTP 200 o equivalente).
-Los links verificados llevan fecha de verificación en `PLAN.md`. Si un recurso no se puede
-verificar, se omite y se dice.
+1. **Official** — if the goal is `exam` or `tool`, the skill looks for the official guide (exam
+   blueprint, canonical documentation, course syllabus). It extracts from it and cites it.
+2. **Provided** — links, files and images the user hands over. Links are verified; files are
+   copied to `<path>/material/`. They are **added** to the official syllabus, they do not
+   replace it.
+3. **Built** — if there is neither official nor provided material, the skill proposes a syllabus
+   from its own knowledge and marks it as *built*. It is validated with the user before moving on.
 
-### 4.3 Diagnóstico según nivel
+**Hard rule:** no link is written without verifying that it responds (HTTP 200 or equivalent).
+Verified links carry their verification date in `PLAN.md`. If a resource cannot be verified, it
+is left out and the user is told.
 
-| Nivel declarado | Acción | Efecto sobre el plan |
+### 4.3 Diagnostic by level
+
+| Declared level | Action | Effect on the plan |
 |---|---|---|
-| Ya trabajo con esto | Diagnóstico completo: 20-25 preguntas sobre todo el temario, ponderadas por área | **Lo más flojo primero.** Siembra *Conceptos a corregir* |
-| Sé algo, parcial | Pregunta qué áreas conoce; diagnóstico solo sobre esas | Esas áreas por debilidad; el resto en orden de dependencias |
-| Desde cero | **Sin diagnóstico del tema.** Revisión de prerrequisitos | Prerrequisitos faltantes → sesiones 0 al inicio, o aviso si el hueco es grande. Orden de dependencias |
+| I already work with this | Full diagnostic: 20-25 questions across the whole syllabus, weighted by area | **Weakest first.** Seeds *Concepts to fix* |
+| I know some of it, partially | Ask which areas they know; diagnostic on those only | Those areas by weakness; the rest in dependency order |
+| From zero | **No topic diagnostic.** Prerequisite check | Missing prerequisites → session(s) 0 at the start, or a warning if the gap is large. Dependency order |
 
-Siempre queda una **línea base escrita** en `diagnostic.md`: resultado por área, o
-*"0 sobre el tema; prerrequisitos: X ✓, Y ✗"*.
+A **written baseline** always ends up in `diagnostic.md`: result by area, or
+*"0 on the topic; prerequisites: X ✓, Y ✗"*.
 
-Si el usuario declara nivel alto y el diagnóstico da por debajo del 50%, la skill lo dice
-sin vueltas y propone tratar esas áreas como desde cero.
+If the user declares a high level and the diagnostic comes in under 50%, the skill says so
+plainly and proposes treating those areas as from zero.
 
-El diagnóstico pide marcar con `?` lo adivinado, igual que toda evaluación.
+The diagnostic asks for `?` marks on guesses, like every evaluation.
 
-### 4.4 Generación
+### 4.4 Generation
 
-Con temario aprobado, tiempo, nivel, acceso y ruta, la skill:
-1. Trocea el temario en sesiones según tamaño de sesión y orden decidido.
-2. Inserta sesiones de colchón distribuidas (no todas al final).
-3. Marca `is_checkpoint` en las sesiones que cierran bloque o punto de control.
-4. Si se declaró una plataforma, busca cursos, los muestra para aprobar y reparte sus clases
-   entre las sesiones (§12). Si la plataforma bloquea, sigue sin videos.
-5. Proyecta `planned_date` según cadencia desde la fecha de inicio.
-6. Genera `PLAN.md`, `sessions/*.md`, `diagnostic.md` si aplica, `material/` si aplica.
-7. Registra en `~/.study/plans` y marca `active`.
-8. Muestra el calendario resultante.
+With the syllabus approved, and time, level, access and path known, the skill:
+1. Chunks the syllabus into sessions according to session size and the decided order.
+2. Inserts buffer sessions spread through the plan (not all at the end).
+3. Sets `is_checkpoint` on the sessions that close a block or checkpoint.
+4. If a platform was declared, looks up courses, shows them for approval and distributes their
+   classes across the sessions (§12). If the platform blocks, it carries on without videos.
+5. Projects `planned_date` by cadence from the start date.
+6. Generates `PLAN.md`, `sessions/*.md`, `diagnostic.md` if applicable, `material/` if applicable.
+7. Registers in `~/.study/plans` and sets `active`.
+8. Shows the resulting calendar.
 
-## 5. Estructura generada
+## 5. Generated structure
 
 ```
-<ruta>/
+<path>/
 ├── PLAN.md
-├── diagnostic.md            solo si hubo diagnóstico o revisión de prerrequisitos
-├── material/                copias de lo aportado por el usuario
+├── diagnostic.md            only if there was a diagnostic or prerequisite check
+├── material/                copies of what the user provided
 └── sessions/
     ├── session-01-<slug>.md
     ├── session-02-<slug>.md
     └── ...
 ```
 
-**Carpeta plana.** Reprogramar una sesión es cambiar `planned_date`, nunca mover un archivo.
-La agrupación por bloque o semana la da el calendario de `PLAN.md`.
+**Flat folder.** Rescheduling a session means changing `planned_date`, never moving a file.
+Grouping by block or week comes from the calendar in `PLAN.md`.
 
 ### 5.1 `PLAN.md`
 
-Secciones, en este orden:
-1. **Estado actual** (regenerada) — próxima sesión, progreso `N/M`, deriva, colchón restante,
-   fin proyectado, último resultado.
-2. **Cómo usar esto** — rutina del usuario y los comandos `study-*`.
-3. **Calendario** — tabla sesión → fecha prevista → bloque → hito. Agrupada visualmente.
-4. **Temario aprobado** — áreas y subtemas con la sesión donde se ven; pesos si existen.
-5. **Línea base** — resumen del diagnóstico; link a `diagnostic.md`.
-6. **Conceptos a corregir** — tabla con ciclo de vida (§6.5).
-7. **Parámetros del protocolo** — tamaños y umbrales editables; la skill los lee de aquí.
-8. **Registro de evaluaciones** — una fila por evaluación.
-9. **Cierres de bloque** — se van agregando.
-10. **Fuentes** — cada una con tipo (oficial/aportada/construida) y fecha de verificación.
-11. **Anexo — checklist final** — todos los temas en una lista para el repaso final.
+Sections, in this order:
+1. **Current state** (regenerated) — next session, progress `N/M`, drift, buffer left,
+   projected end, last result.
+2. **How to use this** — the user's routine and the `study-*` commands.
+3. **Calendar** — table session → planned date → block → milestone. Visually grouped.
+4. **Approved syllabus** — areas and subtopics with the session where each is covered; weights
+   if they exist.
+5. **Baseline** — diagnostic summary; link to `diagnostic.md`.
+6. **Concepts to fix** — table with a lifecycle (§6.5).
+7. **Protocol parameters** — editable sizes and thresholds; the skill reads them from here.
+8. **Evaluation log** — one row per evaluation.
+9. **Block closures** — appended over time.
+10. **Sources** — each with its kind (official/provided/built) and verification date.
+11. **Appendix — final checklist** — every topic in one list for the final review.
 
 ### 5.2 `session-NN-<slug>.md`
 
-Frontmatter (§3.3) y luego:
-- **Tema** y **por qué importa** (una o dos líneas, ligadas al objetivo del usuario).
-- **Qué estudiar** — checklist.
-- **Cómo pensarlo** — analogía o modelo mental que ataque la confusión típica del tema.
-- **Lecturas** — tabla recurso · link verificado · tiempo estimado; total al pie.
-- **Videos** — si se declaró una plataforma (§12). Opcionales pero al mismo nivel que las
-  lecturas: duración propia a la vista, qué cubren y qué no. No suman al tiempo de la sesión.
-- **Práctica** — según `practice_level` (§8). Opcional; nunca bloquea.
-- **Evaluación** — tipo, umbral, instrucción de marcar `?`, y sección *Resultado* vacía.
-- **Apuntes — lo que entendí** — vacío; lo escribe `study-close` con las palabras del usuario.
-- **Lo que quedó flojo** — vacío; lo escribe `study-close`.
+Frontmatter (§3.3) and then:
+- **Topic** and **why it matters** (one or two lines, tied to the user's goal).
+- **What to study** — checklist.
+- **How to think about it** — an analogy or mental model that targets the typical confusion of
+  the topic.
+- **Readings** — table resource · verified link · estimated time; total at the bottom.
+- **Videos** — if a platform was declared (§12). Optional but at the same level as the
+  readings: their own duration shown, what they cover and what they do not. They do not add to
+  the session time.
+- **Practice** — according to `practice_level` (§8). Optional; it never blocks.
+- **Evaluation** — type, threshold, the instruction to mark `?`, and an empty *Result* section.
+- **Notes — what I understood** — empty; written by `study-close` in the user's own words.
+- **What is still weak** — empty; written by `study-close`.
 
-Sesiones de colchón: `is_buffer: true`, tema "Repaso y recuperación", contenido = repasar
-apuntes y conceptos pendientes; sin lecturas nuevas.
+Buffer sessions: `is_buffer: true`, topic "Review and recovery", content = review notes and
+pending concepts; no new readings.
 
 ### 5.3 `diagnostic.md`
 
-Fecha, nivel declarado, preguntas con respuesta correcta y la del usuario (con `?` si
-adivinó), resultado por área, y **la decisión de orden** que tomó la skill y por qué.
+Date, declared level, questions with the correct answer and the user's answer (with `?` if they
+guessed), result by area, and **the ordering decision** the skill made and why.
 
-## 6. Protocolo de evaluación
+## 6. Evaluation protocol
 
-### 6.1 Tipos
+### 6.1 Types
 
-| Tipo | Cuándo | Sobre qué | Tamaño | Umbral default |
+| Type | When | On what | Size | Default threshold |
 |---|---|---|---|---|
-| Diagnóstico | En `study-new` | Según nivel (§4.3) | 20-25 | No aplica |
-| De sesión | Al terminar cada sesión de contenido | ~80% tema de hoy + ~20% repaso | ~1 pregunta cada 6-8 min de estudio; min 5, max 15 | 80% |
-| De punto de control | En sesiones `is_checkpoint` | Acumulativo desde el punto anterior | 2× la de sesión | 80% |
-| Simulacro | Solo `exam` | Todo, imitando el examen real | Igual al examen | 70% el primero; **85% sostenido en dos seguidos** antes de reservar |
-| Integradora | Solo sin examen; cierra bloque | Aplicar lo del bloque | Ejercicio práctico si el tema lo permite; si no, 30-40 preguntas | 80% |
+| Diagnostic | In `study-new` | By level (§4.3) | 20-25 | Not applicable |
+| Session | At the end of each content session | ~80% today's topic + ~20% review | ~1 question per 6-8 min of study; min 5, max 15 | 80% |
+| Checkpoint | In `is_checkpoint` sessions | Cumulative since the previous checkpoint | 2× the session one | 80% |
+| Mock | `exam` only | Everything, imitating the real exam | Same as the exam | 70% the first one; **85% sustained over two in a row** before booking |
+| Integrative | Only when there is no exam; closes a block | Applying what the block covered | A practical exercise if the topic allows it; otherwise 30-40 questions | 80% |
 
-Tamaños y umbrales viven en *Parámetros del protocolo* de `PLAN.md`. La skill los lee de ahí.
+Sizes and thresholds live in *Protocol parameters* in `PLAN.md`. The skill reads them from there.
 
-### 6.2 Formato según objetivo
+### 6.2 Format by goal
 
-- `exam`: las preguntas **imitan el formato del examen** (opción múltiple, respuesta múltiple,
-  lo que use). Entrenar el formato es parte del objetivo.
-- Resto: además de opción múltiple, formatos de comprensión: *explica con tus palabras*,
-  *qué está mal en este fragmento*, *escribe el comando/ruta/consulta que…*.
+- `exam`: questions **imitate the exam format** (multiple choice, multiple response, whatever it
+  uses). Training the format is part of the goal.
+- Everything else: besides multiple choice, comprehension formats: *explain it in your own
+  words*, *what is wrong in this snippet*, *write the command/path/query that…*.
 
-### 6.3 Calidad de las preguntas
+### 6.3 Question quality
 
-1. Cada pregunta se **ancla en una fuente** de la sesión. Sin fuente citable, no se hace.
-2. Una sola respuesta defendible (o exactamente N en respuesta múltiple). Distractores que
-   alguien con conocimiento incompleto elegiría de verdad.
-3. Nunca la misma pregunta dos veces para un concepto: cambia el escenario.
-4. Si al corregir una pregunta resulta ambigua o errónea, se **anula y se dice**.
+1. Every question is **anchored in a source** of the session. No citable source, no question.
+2. Only one defensible answer (or exactly N in multiple response). Distractors that someone with
+   incomplete knowledge would really choose.
+3. Never the same question twice for a concept: change the scenario.
+4. If, when grading, a question turns out ambiguous or wrong, it is **voided and the user is told**.
 
-### 6.4 Mecánica de corrección
+### 6.4 Grading mechanics
 
-1. Pedir marcar con `?` lo adivinado. Las acertadas con `?` **cuentan como error** a efectos
-   de estudio y se reportan aparte.
-2. Entregar primero **puntaje, desglose por área y patrón**. No la lista de errores.
-3. Errores **uno por uno, del más simple al más complejo**, esperando respuesta entre cada uno.
-   Cada uno con analogía si sirve, link a la fuente, y verificación práctica si el nivel del
-   área lo permite.
-4. **Verificar antes de afirmar** cualquier dato que no esté en las fuentes de la sesión.
-5. **Bajo el umbral no se avanza.** La sesión queda `studied` con `eval_passed: false`.
-   `study-next` ofrece repaso de lo fallado y **re-evaluación corta con preguntas nuevas**
-   solo sobre eso. Aprobada, la sesión pasa a `evaluated`.
+1. Ask for `?` marks on guesses. Correct answers marked `?` **count as errors** for study
+   purposes and are reported separately.
+2. Deliver the **score, breakdown by area and pattern** first. Not the list of errors.
+3. Errors **one at a time, from simplest to most complex**, waiting for a reply between each.
+   Each one with an analogy if it helps, a link to the source, and a practical check if the
+   area's level allows it.
+4. **Verify before stating** any fact that is not in the session's sources.
+5. **Below the threshold there is no moving on.** The session stays `studied` with
+   `eval_passed: false`. `study-next` offers a review of what failed and a **short
+   re-evaluation with new questions** on that only. Once passed, the session becomes `evaluated`.
 
-### 6.5 Conceptos a corregir — ciclo de vida
+### 6.5 Concepts to fix — lifecycle
 
 ```
-pendiente → explicado → confirmado×1 → consolidado
+pending → explained → confirmed×1 → consolidated
 ```
 
-- Nace **pendiente** al fallar (o al acertar con `?`). Pasa a **explicado** al corregirse.
-- Se re-pregunta en **toda** evaluación siguiente dentro de la cuota de repaso.
-- Correcta sin `?` → sube un escalón. Con `?` o incorrecta → vuelve a **explicado**.
-- **Dos correctas seguidas** → consolidado. Sale de la cuota.
-- La cuota de repaso se llena: no consolidados primero; el resto con temas de sesiones
-  anteriores al azar (repetición espaciada implícita).
+- Born **pending** on a failure (or on a correct answer marked `?`). Becomes **explained** once
+  corrected.
+- Re-asked in **every** later evaluation, inside the review quota.
+- Correct without `?` → one step up. With `?` or wrong → back to **explained**.
+- **Two correct in a row** → consolidated. It leaves the quota.
+- The review quota is filled: non-consolidated concepts first; the rest with topics from earlier
+  sessions at random (implicit spaced repetition).
 
-Cada entrada guarda: concepto, error cometido, sesión donde se enseña, estado, fechas.
+Each entry stores: concept, error made, session where it is taught, state, dates.
 
-### 6.6 Qué escribe `study-eval`
+### 6.6 What `study-eval` writes
 
-En una sola operación: frontmatter (`eval_score` del último intento, `eval_passed`, `eval_date`,
-`eval_attempts` incrementado), una línea por intento en la región *Resultado*, **la región `weak`
-cuando no se llega al umbral**, fila en *Registro* de `PLAN.md` (tipo `<eval_type> re-eval` si es
-una re-evaluación), altas y cambios en *Conceptos a corregir*, y *Estado actual*. Detalle en §13.
+In a single operation: frontmatter (`eval_score` of the last attempt, `eval_passed`,
+`eval_date`, `eval_attempts` incremented), one line per attempt in the *Result* region, **the
+`weak` region when the threshold is not reached**, a row in the *Log* of `PLAN.md` (type
+`<eval_type> re-eval` if it is a re-evaluation), additions and changes in *Concepts to fix*, and
+*Current state*. Detail in §13.
 
-## 7. Ciclo de sesiones y recuperación
+## 7. Session cycle and recovery
 
 ### 7.1 `study-next`
 
-1. Resuelve plan activo (§3.2).
-2. Lee frontmatter de todas las sesiones; toma la **primera no `closed`**. No usa la fecha de
-   hoy para elegir.
-3. **Mide deriva**: `planned_date` de esa sesión vs hoy. Atraso → §7.5. Adelanto → lo dice y
-   ofrece adelantar.
-4. Si la sesión es de colchón y no hay atraso → ofrece saltarla o usarla de repaso. El
-   colchón no se gasta solo.
-5. Según `status`:
-   - `pending` → presenta la sesión completa; marca `studied`, `actual_date` = hoy.
-   - `studied`, sin evaluar → ofrece evaluar (*"esto ya lo abriste el <fecha>"*).
-   - `studied`, `eval_passed: false` → ofrece repaso + re-evaluación corta.
-   - `evaluated` → ofrece cerrar.
-   - Si `eval_type: none` (sesiones de colchón), no hay evaluación: de `studied` se ofrece
-     cerrar directamente.
-6. Argumento opcional `<slug>` para operar un plan que no es el activo.
+1. Resolves the active plan (§3.2).
+2. Reads the frontmatter of every session; takes the **first one not `closed`**. It does not
+   use today's date to choose.
+3. **Measures drift**: that session's `planned_date` vs today. Behind → §7.5. Ahead → says so and
+   offers to move forward.
+4. If the session is a buffer and there is no delay → offers to skip it or use it for review.
+   The buffer is not spent on its own.
+5. By `status`:
+   - `pending` → presents the full session; sets `studied`, `actual_date` = today.
+   - `studied`, not evaluated → offers to evaluate (*"you already opened this on <date>"*).
+   - `studied`, `eval_passed: false` → offers review + short re-evaluation.
+   - `evaluated` → offers to close.
+   - If `eval_type: none` (buffer sessions), there is no evaluation: from `studied` it offers
+     to close directly.
+6. Optional `<slug>` argument to operate on a plan that is not the active one.
 
 ### 7.2 `study-eval`
 
-Sin argumento: evalúa la sesión en curso con el tipo que indica su frontmatter. Con
-argumento fuerza tipo: `mock`, `checkpoint`, `integrative`, `diagnostic`. Sigue §6.
+Without an argument: evaluates the current session with the type its frontmatter indicates.
+With an argument it forces the type: `mock`, `checkpoint`, `integrative`, `diagnostic`.
+Follows §6.
 
 ### 7.3 `study-close`
 
-Sobre la sesión en `evaluated`:
-1. Pide al usuario **explicar con sus palabras las 2-3 ideas centrales**. Con eso escribe
-   *Apuntes — lo que entendí*. Es el paso Feynman y, para áreas sin entorno, la práctica.
-2. Escribe *Lo que quedó flojo* con los errores de la evaluación más lo que el usuario agregue.
-3. Marca `closed`.
-4. Si `is_checkpoint`: escribe el **cierre de bloque** en `PLAN.md` — cubierto, resultado,
-   conceptos consolidados y pendientes, deriva — y deja el texto listo para copiar si el hito
-   era externo. No publica nada.
-5. Regenera *Estado actual*.
+On the session in `evaluated`:
+1. Asks the user to **explain the 2-3 core ideas in their own words**. With that it writes
+   *Notes — what I understood*. This is the Feynman step and, for areas without an environment,
+   the practice.
+2. Writes *What is still weak* with the evaluation's errors plus whatever the user adds.
+3. Sets `closed`.
+4. If `is_checkpoint`: writes the **block closure** in `PLAN.md` — coverage, result,
+   consolidated and pending concepts, drift — and leaves the text ready to copy if the milestone
+   was external. It publishes nothing.
+5. Regenerates *Current state*.
 
 ### 7.4 `study-status`
 
-Solo lectura salvo cambio de plan activo. Muestra: plan activo, próxima sesión, progreso,
-deriva, colchón restante, conceptos pendientes, últimas evaluaciones, **fin proyectado al
-ritmo real**. `study-status all` lista planes y permite cambiar `active`.
+Read-only except for switching the active plan. Shows: active plan, next session, progress,
+drift, buffer left, pending concepts, last evaluations, **projected end at the real pace**.
+`study-status all` lists plans and lets the user change `active`.
 `study-status replan` → §7.6.
 
-### 7.5 Recuperación por atraso
+### 7.5 Recovery when behind
 
-Detectada en `study-next`. Política según horizonte:
+Detected in `study-next`. Policy by horizon:
 
-**`flexible` u `open`:** reproyecta fechas y lo dice en una línea. Los hitos externos fijos no
-se mueven; avisa qué se habrá cubierto para esa fecha.
+**`flexible` or `open`:** re-projects dates and says so in one line. Fixed external milestones do
+not move; it warns what will have been covered by that date.
 
-**`fixed`:** propone en orden, mostrando el calendario resultante, y aplica solo con aprobación:
-1. **Consumir colchón** mientras quede.
-2. **Doblar** — dos sesiones en una fecha, solo si ambas son livianas (por tiempo de lectura).
-3. **Recortar** — fusionar o adelgazar las más livianas. Muestra qué se pierde antes de tocar.
+**`fixed`:** proposes, in order, showing the resulting calendar, and applies only with approval:
+1. **Use the buffer** while there is some left.
+2. **Double up** — two sessions on one date, only if both are light (by reading time).
+3. **Trim** — merge or slim down the lightest ones. Shows what is lost before touching anything.
 
-Si no alcanza: lo dice y ofrece subir cadencia o mover la fecha.
+If that is not enough: says so and offers to raise the cadence or move the date.
 
 ### 7.6 Replan
 
-`study-status replan`: vuelve a preguntar solo cadencia y horizonte, recalcula proyección,
-y si el fin es `fixed` y no alcanza, entra en §7.5. **No regenera contenido**: mueve fechas
-y, si hace falta, recorta.
+`study-status replan`: asks again only for cadence and horizon, recalculates the projection,
+and if the end is `fixed` and it does not fit, goes into §7.5. **It does not regenerate
+content**: it moves dates and, if needed, trims.
 
-### 7.7 Tabla de escritura
+### 7.7 Write table
 
-| Comando | Frontmatter | `PLAN.md` | `~/.study/` |
+| Command | Frontmatter | `PLAN.md` | `~/.study/` |
 |---|---|---|---|
-| `study-new` | crea | crea | `plans`, `active` |
-| `study-next` | `status`, `actual_date`, `planned_date` si reproyecta | Estado actual; Calendario si reproyecta | — |
-| `study-eval` | `eval_*` | Registro; Conceptos a corregir; Estado actual | — |
-| `study-close` | `status: closed` | Estado actual; Cierres de bloque | — |
-| `study-status` | — | Calendario si replan | `active` si cambia |
+| `study-new` | creates | creates | `plans`, `active` |
+| `study-next` | `status`, `actual_date`, `planned_date` if it re-projects | Current state; Calendar if it re-projects | — |
+| `study-eval` | `eval_*` | Log; Concepts to fix; Current state | — |
+| `study-close` | `status: closed` | Current state; Block closures | — |
+| `study-status` | — | Calendar on replan | `active` if it changes |
 
-## 8. Práctica — tres niveles
+## 8. Practice — three levels
 
-Elegido por **área** según acceso declarado, no por tema. Opcional por sesión: la sesión
-está completa sin ella y no afecta el umbral.
+Chosen per **area** according to declared access, not per topic. Optional per session: the
+session is complete without it and it does not affect the threshold.
 
-| Nivel | Cuándo | Qué genera |
+| Level | When | What it generates |
 |---|---|---|
-| `live` | Acceso real al área | Ejercicios contra el entorno del usuario, comentados para que la salida enseñe. **Solo lectura** si el entorno es compartido o productivo; libres si es un proyecto local descartable del alumno. Deben correr tal cual (§13) |
-| `sandbox` | Sin acceso, pero existe alternativa gratuita o local **verificable** | Free tier, playground oficial, emulador local, consola online |
-| `none` | Nada que tocar, o tema conceptual | *Explícamelo con tus palabras* + ejemplos trabajados con salida real tomada de la fuente oficial |
+| `live` | Real access to the area | Exercises against the user's environment, commented so the output teaches. **Read-only** if the environment is shared or production; free if it is the learner's disposable local project. They must run as-is (§13) |
+| `sandbox` | No access, but a free or local alternative exists and is **verifiable** | Free tier, official playground, local emulator, online console |
+| `none` | Nothing to touch, or a conceptual topic | *Explain it to me in your own words* + worked examples with real output taken from the official source |
 
-Si un comando `live` falla por permisos, la skill lo trata como **dato**: lo anota en la
-sesión, baja el área a `sandbox` o `none`, y no vuelve a proponer acceso a eso. Si un
-comando tiene costo (APIs que cobran por request), se advierte antes de sugerirlo.
+If a `live` command fails for permissions, the skill treats it as **data**: it notes it in the
+session, downgrades the area to `sandbox` or `none`, and does not propose access to that again.
+If a command has a cost (APIs that charge per request), the user is warned before it is suggested.
 
-## 9. Reglas transversales
+## 9. Cross-cutting rules
 
-1. **Nunca inventar** URLs, datos de examen, precios ni nombres de servicios. Verificar o decir
-   que no se pudo verificar.
-2. **Errores uno por uno**, del más simple al más complejo, esperando respuesta.
-3. **Apuntes con las palabras del usuario**, no resúmenes genéricos.
-4. **Estado en frontmatter**; `PLAN.md` se regenera, no se edita a mano.
-5. **Nada se publica** fuera del disco local.
-6. **Degradación**: si `AskUserQuestion` no está disponible, preguntar en texto plano con las
-   mismas opciones.
-7. **Idioma**: estructura en inglés, contenido en el del usuario, `SKILL.md` en inglés.
+1. **Never make up** URLs, exam facts, prices or service names. Verify, or say it could not be
+   verified.
+2. **Errors one at a time**, from simplest to most complex, waiting for a reply.
+3. **Notes in the user's own words**, not generic summaries.
+4. **State in frontmatter**; `PLAN.md` is regenerated, not edited by hand.
+5. **Nothing is published** outside the local disk.
+6. **Degradation**: if `AskUserQuestion` is not available, ask in plain text with the same
+   options.
+7. **Language**: structure in English, content in the plan language, conversation in the
+   language of the user's latest message, `SKILL.md` in English (`references/language.md`).
 
-## 10. Fuera de alcance (deliberado)
+## 10. Out of scope (deliberate)
 
-Pausar o archivar planes · sincronización entre máquinas · notificaciones o recordatorios ·
-publicación en Jira o Slack · soporte para Cursor/Codex · varios usuarios sobre un mismo plan ·
-lo excluido en §12.8 (YouTube, refresco de videos, preferencia de aprendizaje).
-Se agregan si hacen falta, no antes.
+Pausing or archiving plans · syncing between machines · notifications or reminders ·
+publishing to Jira or Slack · support for Cursor/Codex · several users on the same plan ·
+what §12.8 excludes (YouTube, video refresh, learning preference).
+They get added if they are needed, not before.
 
-## 11. Distribución
+## 11. Distribution
 
-- El repo trae `install.sh`, que copia (o enlaza con `--link`) las seis carpetas `study-*` en
-  `~/.claude/skills/`. `INSTALL.md` explica los mismos pasos para que un agente los siga.
-- Solo se instala en `~/.claude/skills/` (Claude Code). No aplica a `~/.agents/skills/`.
+- The repo ships `install.sh`, which copies (or links, with `--link`) the six `study-*` folders
+  into `~/.claude/skills/`. `INSTALL.md` explains the same steps so an agent can follow them.
+- It is installed only in `~/.claude/skills/` (Claude Code). It does not apply to
+  `~/.agents/skills/`.
 
-## 12. Videos por sesión
+## 12. Videos per session
 
-> Aprobado en conversación el 2026-09-23. Se construye junto con la iteración 2.
+> Approved in conversation on 2026-09-23. Built together with iteration 2.
 
-### 12.1 Propósito
+### 12.1 Purpose
 
-Que cada sesión, además de sus lecturas oficiales, indique **qué curso y qué clase en video**
-sirven para ese tema, elegidos comparando el tema de la sesión con el contenido de cada clase.
+That each session, besides its official readings, points to **which course and which video
+class** serve that topic, chosen by comparing the session's topic with the content of each class.
 
-### 12.2 Decisiones
+### 12.2 Decisions
 
-| Decisión | Valor |
+| Decision | Value |
 |---|---|
-| Tiempo | La estimación de la sesión es **solo de lecturas**. Los videos llevan su propia duración, a la vista |
-| Peso | Opcionales pero **no descartables**: para algunas personas el audiovisual es lo principal. Se curan con el mismo cuidado que las lecturas y se muestran al mismo nivel |
-| Momento | Se buscan **al crear el plan** (`study-new`) y quedan escritos en cada sesión |
-| Plataformas v1 | **Platzi** (consulta automática) + **pegado manual** del índice de cualquier otra |
-| Preferencia de aprendizaje | No se pregunta: todas las sesiones muestran videos y lecturas al mismo nivel |
+| Time | The session estimate counts **readings only**. Videos carry their own duration, shown |
+| Weight | Optional but **not dismissable**: for some people audiovisual material is the main thing. They are curated with the same care as the readings and shown at the same level |
+| Timing | Looked up **when the plan is created** (`study-new`) and written into each session |
+| Platforms v1 | **Platzi** (automatic lookup) + **manual paste** of the index of any other one |
+| Learning preference | Not asked: every session shows videos and readings at the same level |
 
-### 12.3 Entrevista
+### 12.3 Interview
 
-Pregunta 7 de la Pantalla 3 (§4.1): *¿Tienes acceso a alguna plataforma de cursos?* → Platzi ·
-otra (pegas el índice) · ninguna. Selección múltiple. "Ninguna" no busca nada.
+Question 7 of Screen 3 (§4.1): *Do you have access to a course platform?* → Platzi · another one
+(you paste the index) · none. Multi-select. "None" looks up nothing.
 
-### 12.4 Flujo con Platzi
+### 12.4 Platzi flow
 
-Después de aprobar el temario y trocear las sesiones:
+After the syllabus is approved and the sessions are chunked:
 
-1. **Catálogo.** Bajar `https://platzi.com/sitemap-cursos.xml` (~1.600 cursos). Caché en
-   `~/.study/cache/platzi/` con fecha; se reutiliza si tiene menos de 7 días.
-2. **Candidatos.** El modelo elige cursos del catálogo por el tema del plan y abre la página de
-   los mejores (título, descripción, nivel) para decidir. **Se muestran al usuario para aprobar**,
-   igual que el temario: un curso **principal** y como mucho **dos complementarios** que tapen huecos.
-3. **Índices.** Una request por curso aprobado. La página del curso trae cada clase con número,
-   título real y duración (enlace `href="/cursos/<curso>/<clase>/"` con texto `N Título MM:SS min`).
-   Se guarda en `<plan>/material/videos-index.json`: solo número, título, duración, URL y curso.
-4. **Reparto.** El modelo asigna clases a cada sesión de contenido según su checklist. Si un título
-   no alcanza para decidir, lee el **resumen escrito** de esa clase (público, debajo del video) y
-   **no lo guarda**. Se prefiere el curso principal; los complementarios solo tapan huecos.
-5. **Cobertura honesta.** Cada sesión dice qué cubren los videos y qué no. Si ningún video sirve
-   para un tema, lo dice en vez de rellenar con uno parecido.
+1. **Catalogue.** Download `https://platzi.com/sitemap-cursos.xml` (~1,600 courses). Cached in
+   `~/.study/cache/platzi/` with a date; reused if it is less than 7 days old.
+2. **Candidates.** The model picks courses from the catalogue by the plan's topic and opens the
+   page of the best ones (title, description, level) to decide. **They are shown to the user for
+   approval**, like the syllabus: one **main** course and at most **two complementary** ones that
+   fill gaps.
+3. **Indexes.** One request per approved course. The course page lists each class with number,
+   real title and duration (link `href="/cursos/<curso>/<clase>/"` with text `N Título MM:SS min`).
+   Saved in `<plan>/material/videos-index.json`: only number, title, duration, URL and course.
+4. **Assignment.** The model assigns classes to each content session according to its checklist.
+   If a title is not enough to decide, it reads that class's **written summary** (public, below
+   the video) and **does not store it**. The main course is preferred; complementary ones only
+   fill gaps.
+5. **Honest coverage.** Each session says what the videos cover and what they do not. If no
+   video fits a topic, it says so instead of filling in with a similar one.
 
-Presupuesto: entre 5 y 20 requests a Platzi por plan. Nunca bajar las ~32.000 clases.
+Budget: between 5 and 20 requests to Platzi per plan. Never download the ~32,000 classes.
 
-Hechos verificados el 2026-09-23 que condicionan el diseño:
-- El `meta description` de una página de clase es **el del curso**, no el de la clase. Lo
-  específico de la clase es el título y el resumen del cuerpo de la página.
-- Los slugs de las URLs **no coinciden** con el título real (se renombran clases sin cambiar la
-  URL). El match se hace sobre títulos reales, nunca filtrando slugs por palabra clave.
+Facts verified on 2026-09-23 that shape the design:
+- The `meta description` of a class page is **the course's**, not the class's. What is specific
+  to the class is the title and the summary in the page body.
+- URL slugs **do not match** the real title (classes are renamed without changing the URL).
+  Matching is done on real titles, never by filtering slugs by keyword.
 
-### 12.5 Pegado manual (cualquier otra plataforma)
+### 12.5 Manual paste (any other platform)
 
-El usuario copia el índice que muestra la página de su curso (Udemy, Coursera, un curso interno)
-y lo pega. El modelo lo interpreta con tolerancia (secciones, clases, duraciones y URLs si vienen)
-y lo reparte igual que en 12.4, paso 4. No se consulta nada afuera. Se guarda en el mismo
-`videos-index.json` con un campo `platform` que indica el origen.
+The user copies the index shown on their course page (Udemy, Coursera, an internal course) and
+pastes it. The model interprets it tolerantly (sections, classes, durations and URLs if present)
+and assigns it the same way as in 12.4, step 4. Nothing is queried outside. It is saved in the
+same `videos-index.json` with a `platform` field that records the origin.
 
-### 12.6 Sección Videos en la sesión
+### 12.6 Videos section in the session
 
-- Encabezado de la sesión: `Lectura ~N min · Videos ~M min (opcional)`.
-- Frontmatter: `video_minutes: M` (suma de duraciones; no entra en ningún cálculo de tiempo).
-- Tabla: clase (número + título), curso, duración, link.
-- Línea de cobertura: *Cubren: … · No cubren: … → quédate con la lectura*.
-- `study-next` presenta los videos **con el mismo peso** que las lecturas, no como nota al pie.
-- Las sesiones de colchón no llevan videos nuevos.
+- Session header: `Lectura ~N min · Videos ~M min (opcional)` (in the plan language; in English,
+  `Reading ~N min · Videos ~M min (optional)`).
+- Frontmatter: `video_minutes: M` (sum of durations; it enters no time calculation).
+- Table: class (number + title), course, duration, link.
+- Coverage line: *Covers: … · Not covered: … → stick to the reading*.
+- `study-next` presents the videos **with the same weight** as the readings, not as a footnote.
+- Buffer sessions carry no new videos.
 
-### 12.7 Reglas
+### 12.7 Rules
 
-1. **Nunca copiar contenido de la plataforma.** Solo título, duración y URL. Los resúmenes se leen
-   para decidir y no se escriben en ningún archivo. Los términos de Platzi no mencionan bots ni
-   IA, pero prohíben copiar o reproducir su contenido en todo o en parte.
-2. **Identificarse honestamente.** User-Agent propio de la skill; nunca disfrazado de navegador.
-3. **Pocas requests y caché.** Pausa de 2-3 s entre requests.
-4. **Si la plataforma bloquea, el plan sale igual.** Platzi usa Cloudflare Bot Management, que da
-   403 intermitentes. Reintentar dos veces con pausa; si sigue bloqueado, generar el plan sin
-   videos y anotarlo en `PLAN.md`. Pedir después "agrega los videos" reintenta solo esa búsqueda;
-   no es un comando de refresco general.
-5. **Las URLs salen de la página del curso consultada ese mismo día**: no requieren otra
-   verificación por clase.
-6. **Los videos envejecen.** La documentación oficial sigue siendo la fuente de verdad; si un
-   video contradice la lectura, manda la lectura y la sesión lo advierte.
+1. **Never copy content from the platform.** Only title, duration and URL. Summaries are read to
+   decide and are not written to any file. Platzi's terms do not mention bots or AI, but they
+   forbid copying or reproducing its content in whole or in part.
+2. **Identify honestly.** The skill's own User-Agent; never disguised as a browser.
+3. **Few requests and a cache.** A 2-3 s pause between requests.
+4. **If the platform blocks, the plan still comes out.** Platzi uses Cloudflare Bot Management,
+   which returns intermittent 403s. Retry twice with a pause; if it is still blocked, generate
+   the plan without videos and note it in `PLAN.md`. Asking later "agrega los videos" ("add the
+   videos") retries only that lookup; it is not a general refresh command.
+5. **URLs come from the course page queried that same day**: they need no further per-class
+   verification.
+6. **Videos age.** The official documentation remains the source of truth; if a video
+   contradicts the reading, the reading wins and the session warns about it.
 
-### 12.8 Qué no hace (deliberado)
+### 12.8 What it does not do (deliberate)
 
-YouTube u otras APIs de video (exigen API key por persona; queda para después) · comando de
-refresco de videos · preguntar la preferencia de aprendizaje · reproducir el video · guardar
-resúmenes o descripciones de las plataformas.
+YouTube or other video APIs (they require a per-person API key; left for later) · a video
+refresh command · asking for learning preference · playing the video · storing summaries or
+descriptions from the platforms.
 
-### 12.9 Archivos que se tocan
+### 12.9 Files touched
 
-`study-shared/scripts/platzi.py` (catálogo con caché + índice de un curso, solo librería
-estándar) · `study-shared/references/videos.md` (nueva) · `study-shared/templates/session.md`
-(sección Videos, `video_minutes`) · `study-shared/references/frontmatter.md` ·
-`study-shared/references/interview.md` · `study-new/SKILL.md` (pregunta y paso de búsqueda) ·
-`study-next/SKILL.md` (presentación con el mismo peso que las lecturas).
+`study-shared/scripts/platzi.py` (catalogue with cache + a course's index, standard library
+only) · `study-shared/references/videos.md` (new) · `study-shared/templates/session.md`
+(Videos section, `video_minutes`) · `study-shared/references/frontmatter.md` ·
+`study-shared/references/interview.md` · `study-new/SKILL.md` (question and lookup step) ·
+`study-next/SKILL.md` (presentation with the same weight as the readings).
 
-## 13. Iteración 2 — decisiones de protocolo, práctica y calidad
+## 13. Iteration 2 — protocol, practice and quality decisions
 
-> Tomadas el 2026-09-23 a partir de las pruebas de la iteración 1 y del uso real de un plan
-> de AWS CLF-C02. El detalle operativo vive en `references/`; aquí queda el porqué.
+> Taken on 2026-09-23 from the iteration 1 tests and the real use of an AWS CLF-C02 plan. The
+> operational detail lives in `references/`; the reasons stay here.
 
-### 13.1 Evaluación
+### 13.1 Evaluation
 
-| Tema | Decisión | Por qué |
+| Topic | Decision | Why |
 |---|---|---|
-| Re-evaluación | 2 preguntas por concepto flojo (mín 4, máx 10), umbral `threshold_session` | "Corta" no era un tamaño; cada sesión lo resolvía distinto |
-| Momento de la re-eval | Recomendada al inicio de la sesión siguiente, no justo después del repaso | Justo después mide memoria de corto plazo |
-| Historial de intentos | `eval_score` = último; `eval_attempts` = cantidad; una línea por intento en *Resultado*; el log guarda todos | La re-eval pisaba el primer puntaje |
-| Escalones de concepto | Máximo uno por evaluación | Acertar dos veces en la misma evaluación no es retención |
-| Acertadas con `?` | Correctas para el puntaje y el umbral; error para el seguimiento de conceptos; todo `?` genera fila | Era ambiguo y cada sesión lo contaba distinto |
-| Región `weak` | La escribe `study-eval` al reprobar; `study-close` la reescribe al cerrar | `study-next` repasaba una región que nadie llenaba |
-| Posición de la correcta | La sortea `study_state.py answer-key` antes de escribir las opciones: sin letra por encima de su parte justa + 1 y nunca tres seguidas iguales | En una evaluación real 7 de 8 respuestas fueron B y el usuario empezó a responder el patrón |
-| Entrega | `--clicks` (`AskUserQuestion`: tandas de 3 + "¿cuáles adivinaste?") o `--text` (todo en un mensaje). Por defecto clics hasta 12 preguntas y texto por encima; las de 5+ opciones y las abiertas siempre en texto | Clics quitan fricción en evaluaciones cortas; en simulacros de 65 serían 22 diálogos sin poder volver atrás, y el examen real deja revisar antes de entregar |
+| Re-evaluation | 2 questions per weak concept (min 4, max 10), threshold `threshold_session` | "Short" was not a size; each session resolved it differently |
+| When to re-evaluate | Recommended at the start of the next session, not right after the review | Right after measures short-term memory |
+| Attempt history | `eval_score` = last; `eval_attempts` = count; one line per attempt in *Result*; the log keeps them all | The re-eval overwrote the first score |
+| Concept steps | At most one per evaluation | Getting it right twice in the same evaluation is not retention |
+| Correct answers marked `?` | Correct for the score and the threshold; an error for concept tracking; every `?` creates a row | It was ambiguous and each session counted it differently |
+| `weak` region | Written by `study-eval` on a fail; rewritten by `study-close` on close | `study-next` reviewed a region nobody filled |
+| Position of the correct answer | Drawn by `study_state.py answer-key` before writing the options: no letter above its fair share + 1 and never three identical in a row | In a real evaluation 7 of 8 answers were B and the user started answering the pattern |
+| Delivery | `--clicks` (`AskUserQuestion`: batches of 3 + "which did you guess?") or `--text` (everything in one message). By default clicks up to 12 questions and text above that; questions with 5+ options and open questions always in text | Clicks remove friction in short evaluations; in 65-question mocks they would be 22 dialogs with no way back, and the real exam lets you review before submitting |
 
-### 13.2 Práctica
+### 13.2 Practice
 
-- `live` distingue **entorno compartido o productivo** (solo lectura) de **proyecto local
-  descartable** (se puede modificar): la regla vieja volvía inútil la práctica de un framework.
-- **Los comandos corren tal cual.** Se resuelve la identidad antes, y nunca hay placeholders tipo
-  `<tu-usuario>` en un bloque ejecutable: zsh los toma como redirección y el botón Run del
-  desktop app falla.
-- La entrevista pregunta **cómo se autentica** el alumno en entornos remotos (usuario IAM o rol
-  de Identity Center): los comandos "sobre tu usuario" no aplican a quien entra por un rol.
+- `live` distinguishes a **shared or production environment** (read-only) from a **disposable
+  local project** (may be modified): the old rule made framework practice useless.
+- **Commands run as-is.** Identity is resolved beforehand, and there are never placeholders like
+  `<tu-usuario>` in an executable block: zsh takes them as a redirection and the desktop app's
+  Run button fails.
+- The interview asks **how the learner authenticates** in remote environments (IAM user or
+  Identity Center role): commands "on your user" do not apply to someone who comes in through a
+  role.
 
-### 13.3 Calidad del contenido que genera `study-new`
+### 13.3 Quality of the content `study-new` generates
 
-- **Cada afirmación del checklist y de la analogía se respalda en una lectura de la sesión.** Un
-  200 de `verify_links.py` prueba que la página existe, no lo que dice. Caso real: una sesión
-  afirmaba que cambiar el plan de soporte era tarea exclusiva del root, y eso ya no figura en la
-  lista oficial.
-- **Cada ítem del checklist tiene al menos una lectura** que lo cubra: dos de tres errores de una
-  evaluación real cayeron en ítems sin lectura.
-- **Doc localizada** en el idioma del plan cuando existe, con anchor a la sección exacta.
-- **Hitos contra calendario:** `study_state.py check` valida que cada hito externo (`milestones:`)
-  tenga un checkpoint antes. Corre al generar el plan y tras cada reproyección, porque reproyectar
-  puede empujar un checkpoint más allá de su hito.
-- Versión de examen retirada → se construye contra la vigente y se confirma con el usuario.
-  Versión pedida que no es la última → se construye para la pedida y se avisa. Sin cantidad o
-  pesos oficiales → se eligen y se declaran como elección del plan.
+- **Every claim in the checklist and the analogy is backed by a reading of the session.** A 200
+  from `verify_links.py` proves the page exists, not what it says. Real case: a session claimed
+  that changing the support plan was a root-only task, and that is no longer on the official list.
+- **Every checklist item has at least one reading** that covers it: two of three errors in a real
+  evaluation fell on items without a reading.
+- **Localized docs** in the plan language when they exist, with an anchor to the exact section.
+- **Milestones against the calendar:** `study_state.py check` validates that every external
+  milestone (`milestones:`) has a checkpoint before it. It runs when the plan is generated and
+  after every re-projection, because re-projecting can push a checkpoint past its milestone.
+- Retired exam version → build against the current one and confirm with the user. Requested
+  version that is not the latest → build for the requested one and warn. No official count or
+  weights → choose them and declare them as the plan's choice.
 
-### 13.4 Mecánica
+| Topic | Decision | Why |
+|---|---|---|
+| Plan language | Not asked. Inferred from the request (explicit request wins; otherwise the request's language; ask only if genuinely unclear) and confirmed in the summary screen. Conversation follows the user's latest message; files stay in the plan language; `study-close` notes keep the user's words untranslated; Spanish is neutral (*tú*, no voseo). Detail in `references/language.md` | People often study for an exam taken in English while chatting in another language, and a separate language question was one more screen for something the request already says |
 
-- **Fechas de `python3 study_state.py today`**, nunca de `date`: respeta `STUDY_TODAY` en pruebas
-  y evita errores de zona horaria.
-- `check` detecta placeholders propios sin confundirlos con Blade/Jinja, fechas faltantes, hitos
-  sin checkpoint y colchones con evaluación.
-- `verify_links.py` sigue redirecciones (incluida la 308), reintenta ante 429 y distingue
-  `REDIRECT`, `RATE-LIMITED`, `BLOCKED` y `SPA?` de `BAD`: antes daba por buenos redirects a otra
-  página y rutas inventadas de sitios SPA.
-- Plantillas localizadas: los textos fijos salen de `references/labels.md` (es/en/pt) en vez de
-  traducirse a mano en cada plan.
-- En `study-next`: primero se marca la sesión y después se responde; no se marca `studied` una
-  sesión incompleta; calentamiento opcional tras 7 días sin actividad (`days_since_last_activity`,
-  que toma la fecha más reciente entre apertura, evaluación y cierre: una sesión puede quedar abierta
-  varios días); no se reverifican links.
+### 13.4 Mechanics
 
-## 14. Referencia
+- **Dates from `python3 study_state.py today`**, never from `date`: it honours `STUDY_TODAY` in
+  tests and avoids time zone errors.
+- `check` detects its own placeholders without confusing them with Blade/Jinja, missing dates,
+  milestones without a checkpoint, and buffers with an evaluation.
+- `verify_links.py` follows redirects (including 308), retries on 429 and distinguishes
+  `REDIRECT`, `RATE-LIMITED`, `BLOCKED` and `SPA?` from `BAD`: before, it accepted redirects to
+  another page and made-up routes on SPA sites.
+- Localized templates: fixed texts come from `references/labels.md` (es/en/pt) instead of being
+  translated by hand in each plan.
+- In `study-next`: the session is marked first and the reply comes after; an incomplete session
+  is not marked `studied`; optional warm-up after 7 days without activity
+  (`days_since_last_activity`, which takes the most recent date among opening, evaluation and
+  closing: a session can stay open for several days); links are not re-verified.
 
-El plan real de AWS CLF-C02 que originó esta familia es el ejemplo de referencia de
-*calidad de contenido* (analogías, comandos comentados, lecturas verificadas, protocolo).
-**No** es referencia de estructura: usa carpetas por semana y fechas en los nombres, que este
-diseño reemplaza por sesiones planas con estado en frontmatter.
+## 14. Reference
+
+The real AWS CLF-C02 plan that gave rise to this family is the reference example for *content
+quality* (analogies, commented commands, verified readings, protocol). It is **not** a reference
+for structure: it uses folders per week and dates in file names, which this design replaces with
+flat sessions and state in frontmatter.

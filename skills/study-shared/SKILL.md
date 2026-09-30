@@ -10,7 +10,7 @@ Everything the `study-*` skills have in common lives here, once.
 
 ```
 study-shared/
-├── DESIGN.md                 the approved spec (Spanish). Source of truth when in doubt
+├── DESIGN.md                 the approved spec. Source of truth when in doubt
 ├── scripts/
 │   ├── study_state.py        state engine: today, registry, next/status, check, set, project, refresh, log,
 │   │                         answer-key
@@ -27,6 +27,7 @@ study-shared/
     ├── recovery.md           drift policy by horizon, buffer, doubling, trimming, replan, milestones
     ├── practice-levels.md    live / sandbox / none; commands that run as-is
     ├── videos.md             videos per session: Platzi lookup, pasted index, rules
+    ├── language.md           plan language vs conversation language, neutral Spanish
     └── labels.md             fixed template text in es / en / pt
 ```
 
@@ -44,5 +45,5 @@ Conventions the whole family depends on:
 - **Structure in English, content in the plan's language.** File names, frontmatter keys and
   markers are identifiers; headings and fixed prose come from `references/labels.md`.
 - **Dates come from `python3 $SS today`**, never from `date`.
-- **Spanish means neutral Spanish** (*tú*, no voseo, no regionalisms), in plans and in replies.
-  The rule and its examples are at the top of `references/labels.md`.
+- **Files in the plan's language, conversation in the user's**; Spanish is always neutral
+  Spanish. Rules in `references/language.md`.

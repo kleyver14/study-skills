@@ -85,5 +85,5 @@ Then, with the Edit tool:
 - PLAN.md's `concepts` region: new rows for new misses and for every `?`; status moves per the
   lifecycle, **at most one step per evaluation**.
 
-Speak in the plan's language. For `es`, neutral Spanish with *tú*: no voseo, no regionalisms
-(`labels.md`).
+Language: files in the plan's language, conversation in the user's (`language.md`). Questions
+and options in the plan's language unless the user asks otherwise for this evaluation.

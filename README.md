@@ -1,128 +1,141 @@
 # study-skills
 
-Skills de **Claude Code** para armar y seguir un plan de estudio sobre cualquier tema:
-una certificación, un framework, un libro o un curso. Sirven para cualquier duración y cadencia.
+*[Leer en español](README.es.md)*
 
-Claude arma el temario a partir de fuentes oficiales verificadas y lo divide en sesiones con
-lecturas, una analogía, práctica y videos opcionales. En cada sesión te evalúa, corrige tus
-errores uno por uno y guarda tus apuntes con tus palabras. El plan es una **cola de sesiones, no un
-calendario**: si faltas una semana no se rompe nada. Se reproyectan las fechas y sigues donde
-te quedaste.
+**Claude Code** skills to build and follow a study plan on any topic: a certification, a
+framework, a book or a course, with any duration and cadence.
 
-> **¿Eres un agente y te pidieron instalar esto?** Sigue [INSTALL.md](INSTALL.md).
+Claude builds the syllabus from verified official sources and splits it into sessions with
+readings, an analogy, practice and optional videos. Each session ends with an evaluation; errors
+are corrected one at a time, and your notes are kept in your own words. The plan is a **queue of
+sessions, not a calendar**: miss a week and nothing breaks. Dates are re-projected and you pick
+up where you left off.
 
-## Instalación
+> **Are you an agent asked to install this?** Follow [INSTALL.md](INSTALL.md).
 
-Requisitos: Claude Code y Python 3.9 o más nuevo (`python3`). No hay que instalar nada más.
+## Install
+
+Requirements: Claude Code and Python 3.9 or newer (`python3`). Nothing else to install.
 
 ```bash
-git clone <url-del-repo> study-skills
+git clone <repo-url> study-skills
 cd study-skills
-./install.sh            # copia las skills en ~/.claude/skills/
-# ./install.sh --link   # o enlaza, para que `git pull` las actualice
+./install.sh            # copies the skills into ~/.claude/skills/
+# ./install.sh --link   # or symlinks them, so `git pull` updates them
 ```
 
-Después abre una sesión nueva de Claude Code. También puedes pasarle el link del repo a tu agente
-y pedirle: *"instala estas skills"*.
+Then open a new Claude Code session. You can also hand the repo link to your agent and ask it
+to *"install these skills"*.
 
-## Uso
+## Usage
 
-| Comando | Qué hace | También se activa con |
+| Command | What it does | Also triggered by |
 |---|---|---|
-| `/study-new` | Te entrevista y genera el plan: `PLAN.md` y un archivo por sesión | "quiero aprender X", "tengo que certificarme en Y" |
-| `/study-next` | Abre la próxima sesión pendiente y te avisa si vas atrasado | "qué estudio hoy", "sigamos con el plan" |
-| `/study-eval` | Te evalúa sobre la sesión actual, o te toma un simulacro | "evalúame", "hazme la evaluación", "simulacro" |
-| `/study-close` | Te pide que expliques con tus palabras lo aprendido y cierra la sesión | "listo por hoy", "cerremos la sesión" |
-| `/study-status` | Muestra cómo vas, cuándo terminarías a tu ritmo real y cambia de plan activo | "cómo voy", "me adelantaron el examen" |
+| `/study-new` | Interviews you and generates the plan: `PLAN.md` plus one file per session | "I want to learn X", "I need to get certified in Y" |
+| `/study-next` | Opens the next pending session and tells you if you are behind | "what do I study today", "let's continue the plan" |
+| `/study-eval` | Evaluates the current session, or runs a mock exam | "quiz me", "test me", "mock exam" |
+| `/study-close` | Asks you to explain what you learned in your own words and closes the session | "done for today", "let's close the session" |
+| `/study-status` | Shows how you are doing, your projected end at your real pace, and switches plans | "how am I doing", "my exam date moved" |
 
-El ciclo de cada sesión es `/study-next` → estudiar → `/study-eval` → `/study-close`.
+Each session's cycle is `/study-next` → study → `/study-eval` → `/study-close`. The triggers
+work in any language: "hazme la evaluación" or "cómo voy" work as well.
 
-### Cómo respondes las evaluaciones
+### How you answer evaluations
 
-| Modo | Cómo se ve | Por defecto |
+| Mode | What it looks like | Default for |
 |---|---|---|
-| `--clicks` | Diálogos donde eliges las opciones con un clic (tandas de 3 preguntas más "¿cuáles adivinaste?"), incluso con selección múltiple | Evaluaciones de 12 preguntas o menos |
-| `--text` | Todas las preguntas en un mensaje; respondes `1. A`, `2. C?` (el `?` marca lo que adivinaste) | Simulacros y diagnósticos, para revisar todo antes de entregar como en el examen real |
+| `--clicks` | Dialogs where you click the options (batches of 3 questions plus "which ones did you guess?"), multi-select included | Evaluations of 12 questions or fewer |
+| `--text` | Every question in one message; you answer `1. A`, `2. C?` (`?` marks a guess) | Mocks and diagnostics, so you can review everything before submitting, as in the real exam |
 
-Ejemplos: `/study-eval --text`, `/study-eval mock --clicks`. También puedes decirlo con
-palabras: "hazme la evaluación con clics". Las preguntas de 5 o más opciones y las abiertas van
-siempre en texto, porque el diálogo muestra hasta 4 opciones. En los dos modos, la posición de la
-respuesta correcta se sortea.
+Examples: `/study-eval --text`, `/study-eval mock --clicks`, or just say it: "quiz me with
+clicks". Questions with 5 or more options and open questions always go as text, because the
+dialog shows at most 4 options. In both modes the position of the correct answer is randomized.
 
-### La entrevista de `/study-new`
+### Languages
 
-Son cuatro pantallas cortas:
+- **Files** are written in the language you asked in: `/study-new i want to learn laravel 12`
+  gives an English plan; "quiero estudiar AWS" gives a Spanish one. Say it explicitly to override
+  ("the files in English"). The summary before generating shows it, so you can change it there.
+- **Conversation** follows the language of your latest message, whatever the plan's language.
+  Studying for an exam in English while chatting in Spanish works.
+- Evaluation questions come in the plan's language (they come from the readings); ask for another
+  language for a given evaluation if you want. Your notes are kept in your own words, untranslated.
+- Fixed texts exist in Spanish (neutral), English and Portuguese. For another language, Claude
+  offers English labels or a one-time translation for the whole plan.
 
-1. **Objetivo y fuentes.** Qué quieres estudiar y qué material tienes. Claude busca las fuentes
-   oficiales y te propone un temario, y no genera nada hasta que lo apruebes.
-2. **Tiempo y nivel.**
-   - Fecha límite: exacta, aproximada ("unos 3 meses") o ninguna.
-   - Cuántos días por semana y cuántos minutos por sesión.
-   - Tu nivel actual. Según eso te toma un diagnóstico o revisa los prerrequisitos.
-3. **Práctica, videos y seguimiento.**
-   - Si tienes acceso real, un entorno de prueba o nada para practicar. Se elige por área.
-   - Si usas una plataforma de cursos: Platzi, o cualquier otra pegando el índice del curso.
-   - Si reportas el avance a alguien, por ejemplo en 1:1.
-4. **Ubicación e idioma.** Dónde guardar el plan e idioma del contenido: español, inglés o
-   portugués.
+### The `/study-new` interview
 
-### Qué queda en disco
+Four short screens:
+
+1. **Goal and sources.** What you want to study and what material you have. Claude looks up the
+   official sources and proposes a syllabus; nothing is generated until you approve it.
+2. **Time and level.**
+   - Deadline: exact, approximate ("about 3 months") or none.
+   - Days per week and minutes per session.
+   - Your current level, which decides between a diagnostic and a prerequisite check.
+3. **Practice, videos and follow-up.**
+   - Whether you have real access, a sandbox or nothing to practise on, per area.
+   - Whether you use a course platform: Platzi, or any other by pasting the course index.
+   - Whether you report progress to someone, e.g. in 1:1s.
+4. **Location.** Where to save the plan.
+
+### What ends up on disk
 
 ```
-<carpeta que elijas>/
-├── PLAN.md                 configuración, calendario, conceptos pendientes, registro de evaluaciones
-├── DIAGNOSTIC.md           punto de partida
+<folder you choose>/
+├── PLAN.md                 config, calendar, concepts to fix, evaluation log
+├── diagnostic.md           starting point
 └── sessions/
-    ├── session-01-<tema>.md
+    ├── session-01-<topic>.md
     └── …
-~/.study/                   registro de tus planes y cuál está activo
+~/.study/                   registry of your plans and which one is active
 ```
 
-Todo es Markdown local: puedes leerlo, versionarlo o editarlo. El estado de cada sesión vive en su
-frontmatter, y las secciones de `PLAN.md` entre marcadores `<!-- study:… -->` las regenera la
-skill, así que no conviene editarlas a mano. Puedes tener varios planes a la vez y cambiar entre
-ellos con `/study-status all`.
+Everything is local Markdown: read it, version it, edit it. Each session's state lives in its
+frontmatter, and the `PLAN.md` sections between `<!-- study:… -->` markers are regenerated by
+the skills, so do not edit those by hand. You can run several plans and switch between them
+with `/study-status all`.
 
-## Principios
+## Principles
 
-- **Nada inventado.** Todo link pasa por `verify_links.py` antes de escribirse, y cada afirmación
-  de una sesión está respaldada por una lectura.
-- **Nada se publica.** Las skills no usan Jira, Slack ni ningún servicio externo. Los resúmenes
-  de cierre de bloque quedan listos para que los copies donde quieras.
-- **La práctica corre tal cual.** Los comandos no llevan `<placeholders>` y respetan el nivel de
-  acceso que declaraste. Si algo falla por permisos, se baja el nivel de esa área.
-- **Evaluaciones con criterio.** Marcas lo que adivinaste, y la posición de la respuesta
-  correcta se sortea, así que no hay patrón que aprender. Los errores se corrigen uno por uno, y un concepto queda
-  "pendiente" hasta que lo aciertes en evaluaciones distintas.
-- **Videos con respeto.** De Platzi solo se guardan título, duración y URL, nunca el contenido
-  (lo exigen sus términos de uso).
+- **Nothing invented.** Every link goes through `verify_links.py` before it is written, and every
+  claim in a session is backed by a reading.
+- **Nothing published.** No Jira, Slack or any external service. Block closure summaries are
+  ready for you to paste wherever you want.
+- **Practice runs as-is.** Commands carry no `<placeholders>` and respect the access level you
+  declared. If something fails for permissions, that area's level goes down.
+- **Evaluations with judgement.** You mark your guesses, and the correct answer's position is
+  randomized, so there is no pattern to learn. Errors are corrected one at a time, and a concept
+  stays "pending" until you get it right in separate evaluations.
+- **Videos, respectfully.** From Platzi only title, duration and URL are stored, never the
+  content (its terms of use require it).
 
-## Estructura del repo
+## Repository layout
 
 ```
 skills/
-├── study-new/ study-next/ study-eval/ study-close/ study-status/   un SKILL.md por comando
+├── study-new/ study-next/ study-eval/ study-close/ study-status/   one SKILL.md per command
 └── study-shared/
-    ├── DESIGN.md       especificación y el porqué de cada decisión
-    ├── scripts/        study_state.py (estado), verify_links.py, platzi.py (solo stdlib)
-    ├── templates/      plan, sesión y diagnóstico
-    └── references/     protocolo de evaluación, recuperación, práctica, videos, textos por idioma
-tests/                  unittest, sin red
+    ├── DESIGN.md       the spec and the reason behind each decision
+    ├── scripts/        study_state.py (state), verify_links.py, platzi.py (stdlib only)
+    ├── templates/      plan, session and diagnostic
+    └── references/     evaluation protocol, recovery, practice, videos, language, labels
+tests/                  unittest, no network
 install.sh
 ```
 
-Para correr los tests: `cd tests && python3 -m unittest test_study_state test_verify_links test_platzi`.
+Run the tests: `cd tests && python3 -m unittest test_study_state test_verify_links test_platzi`.
 
-## Limitaciones
+## Limitations
 
-- Funciona solo en Claude Code, porque usa `AskUserQuestion`. En otros agentes no está probado.
-- Para videos, v1 soporta Platzi y un índice pegado a mano. Platzi a veces bloquea las consultas
-  automáticas; en ese caso el plan se genera sin videos y lo avisa.
-- No hay recordatorios ni sincronización entre máquinas. Si quieres tus planes en varias
-  computadoras, versiona la carpeta del plan con git.
+- Claude Code only, because it uses `AskUserQuestion`. Untested on other agents.
+- Videos: v1 supports Platzi and a manually pasted index. Platzi sometimes blocks automated
+  requests; the plan is then generated without videos and says so.
+- No reminders and no sync between machines. To use your plans on several computers, version
+  the plan folder with git.
 
-## Desinstalar
+## Uninstall
 
 ```bash
-./install.sh --uninstall   # quita las skills; tus planes y ~/.study quedan intactos
+./install.sh --uninstall   # removes the skills; your plans and ~/.study stay untouched
 ```
