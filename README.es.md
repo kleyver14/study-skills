@@ -140,3 +140,7 @@ Para correr los tests: `cd tests && python3 -m unittest test_study_state test_ve
 ```bash
 ./install.sh --uninstall   # quita las skills; tus planes y ~/.study quedan intactos
 ```
+
+## Licencia
+
+[MIT](LICENSE)

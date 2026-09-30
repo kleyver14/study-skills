@@ -139,3 +139,7 @@ Run the tests: `cd tests && python3 -m unittest test_study_state test_verify_lin
 ```bash
 ./install.sh --uninstall   # removes the skills; your plans and ~/.study stay untouched
 ```
+
+## License
+
+[MIT](LICENSE)
