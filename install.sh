@@ -36,6 +36,7 @@ verify() {
     [ "$missing" -eq 0 ] || { echo "error: installation incomplete in $DEST" >&2; exit 1; }
     python3 "$DEST/study-shared/scripts/study_state.py" today >/dev/null
     echo "study_state.py runs: ok"
+    echo "version: $(cat "$REPO/VERSION" 2>/dev/null || echo unknown)"
 }
 
 case "$mode" in

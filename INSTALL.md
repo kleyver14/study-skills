@@ -77,6 +77,9 @@ If one is missing, tell the user and stop.
 
 Existing plans are not modified by an update.
 
+The installed version is in the repo's `VERSION` file (`./install.sh --check` prints it), and
+[CHANGELOG.md](CHANGELOG.md) lists what changed in each one. Tell the user what changed.
+
 ## Uninstall
 
 ```bash
