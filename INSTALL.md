@@ -74,9 +74,9 @@ If one is missing, tell the user and stop.
    line in study sessions only. The skills work fully without it. With their yes, from the repo
    folder:
    ```bash
-   claude plugin marketplace add "$PWD"
-   claude plugin install study-companion@study-skills
+   ./install.sh --panel
    ```
+   With the skills already installed it adds only the panel. It needs the `claude` command.
    Tell them it loads in **new** sessions; sessions already open keep running without it.
 
 ## Update
@@ -86,12 +86,10 @@ If one is missing, tell the user and stop.
 
 Existing plans are not modified by an update.
 
-The panel, if installed, runs from a copy Claude Code made at install time, so it needs its own
-update; new sessions pick it up:
+The panel, if installed, has its own update; new sessions pick it up:
 
 ```bash
-claude plugin marketplace update study-skills
-claude plugin update study-companion@study-skills
+./install.sh --panel
 ```
 
 The installed version is in the repo's `VERSION` file (`./install.sh --check` prints it), and
@@ -103,8 +101,7 @@ The installed version is in the repo's `VERSION` file (`./install.sh --check` pr
 ./install.sh --uninstall
 ```
 
-Removes only the six `study-*` folders. The panel is removed with
-`claude plugin uninstall study-companion@study-skills`. It does **not** touch the user's plans or `~/.study/`; if
+Removes only the six `study-*` folders; add `--panel` to remove the panel too. It does **not** touch the user's plans or `~/.study/`; if
 the user wants those gone too, they delete them themselves.
 
 ## Manual installation (without `install.sh`)

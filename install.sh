@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 # Install the study-* skills into Claude Code's personal skills folder.
-# Usage: ./install.sh [--link] [--force] [--uninstall] [--check]
+# Usage: ./install.sh [--link] [--force] [--panel] [--uninstall] [--check]
+#   --panel  also install (or update, or with --uninstall remove) the optional study panel
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEST="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 BACKUP_ROOT="${STUDY_HOME:-$HOME/.study}/backup"
 SKILLS=(study-shared study-new study-next study-eval study-close study-status)
+PANEL="study-companion@study-skills"
 
-mode=copy force=0
+mode=copy force=0 panel=0
 for arg in "$@"; do
     case "$arg" in
         --link) mode=link ;;
         --force) force=1 ;;
+        --panel) panel=1 ;;
         --uninstall) mode=uninstall ;;
         --check) mode=check ;;
-        -h|--help) sed -n 2,3p "$0" | sed 's/^# //'; exit 0 ;;
+        -h|--help) sed -n 2,4p "$0" | sed 's/^# //'; exit 0 ;;
         *) echo "unknown option: $arg" >&2; exit 2 ;;
     esac
 done
@@ -39,13 +42,39 @@ verify() {
     echo "version: $(cat "$REPO/VERSION" 2>/dev/null || echo unknown)"
 }
 
+has_claude() {
+    command -v claude >/dev/null || {
+        echo "panel: the 'claude' command was not found; install Claude Code, then run ./install.sh --panel" >&2
+        return 1
+    }
+}
+
+panel_installed() {
+    claude plugin list 2>/dev/null | grep -q "$PANEL"
+}
+
+# Add this folder as a marketplace, then install the panel or bring it up to date.
+install_panel() {
+    has_claude || return 0
+    claude plugin marketplace add "$REPO" >/dev/null
+    claude plugin marketplace update study-skills >/dev/null
+    if panel_installed; then
+        claude plugin update "$PANEL"
+    else
+        claude plugin install "$PANEL"
+    fi
+    echo "panel: ready in new sessions; open it with /study-panel"
+}
+
 case "$mode" in
     check)
-        check_python; verify ;;
+        check_python; verify
+        if command -v claude >/dev/null && panel_installed; then echo "panel: installed"; else echo "panel: not installed (optional: ./install.sh --panel)"; fi ;;
     uninstall)
         for s in "${SKILLS[@]}"; do
             if [ -L "$DEST/$s" ] || [ -d "$DEST/$s" ]; then rm -rf "$DEST/$s"; echo "removed $DEST/$s"; fi
         done
+        if [ "$panel" -eq 1 ] && has_claude && panel_installed; then claude plugin uninstall "$PANEL"; fi
         echo "Your plans and ~/.study were not touched." ;;
     copy|link)
         check_python
@@ -54,12 +83,17 @@ case "$mode" in
         for s in "${SKILLS[@]}"; do
             if [ -e "$DEST/$s" ] || [ -L "$DEST/$s" ]; then existing+=("$s"); fi
         done
-        if [ "${#existing[@]}" -gt 0 ]; then
-            if [ "$force" -eq 0 ]; then
-                echo "already installed in $DEST: ${existing[*]}" >&2
-                echo "run again with --force to replace them (a backup is kept in $BACKUP_ROOT)." >&2
-                exit 1
+        if [ "${#existing[@]}" -gt 0 ] && [ "$force" -eq 0 ]; then
+            if [ "$panel" -eq 1 ]; then
+                echo "skills already installed in $DEST; left as they are (--force replaces them)."
+                install_panel
+                exit 0
             fi
+            echo "already installed in $DEST: ${existing[*]}" >&2
+            echo "run again with --force to replace them (a backup is kept in $BACKUP_ROOT)." >&2
+            exit 1
+        fi
+        if [ "${#existing[@]}" -gt 0 ]; then
             backup="$BACKUP_ROOT/skills-$(date +%Y%m%d-%H%M%S)"
             mkdir -p "$backup"
             for s in "${existing[@]}"; do mv "$DEST/$s" "$backup/"; done
@@ -70,6 +104,7 @@ case "$mode" in
         done
         echo "installed (${mode}) in $DEST:"
         verify
+        if [ "$panel" -eq 1 ]; then install_panel; fi
         cat <<'USAGE'
 
 Open a new Claude Code session, then:
@@ -84,5 +119,8 @@ Open a new Claude Code session, then:
 
 Files are written in the language you ask in; the conversation follows yours.
 USAGE
+        if [ "$panel" -eq 0 ]; then
+            echo "Optional: a study panel with your progress and buttons (/study-panel): ./install.sh --panel"
+        fi
         ;;
 esac

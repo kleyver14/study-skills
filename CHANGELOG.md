@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-07
+
+### Added
+
+- `install.sh --panel` installs or updates the study panel; with the skills already installed it
+  adds only the panel. `--uninstall --panel` removes it and `--check` reports it.
+- The end of a plain install mentions the optional panel.
+
 ## [0.2.0] - 2026-10-07
 
 ### Added
@@ -41,6 +49,7 @@ First public release.
 - `install.sh` with `--link`, `--force`, `--check` and `--uninstall`; `INSTALL.md` for agents.
 - Offline test suite with synthetic fixtures.
 
-[Unreleased]: https://github.com/kleyver14/study-skills/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/kleyver14/study-skills/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/kleyver14/study-skills/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/kleyver14/study-skills/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kleyver14/study-skills/releases/tag/v0.1.0

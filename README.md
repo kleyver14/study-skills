@@ -109,11 +109,11 @@ depending on where the session is) and the full status.
   after a `study-*` skill runs, after `/study-panel`, or when the session opens in the plan folder.
 - After 7 days without studying, a study session greets you with a reminder.
 
-Install it from the repo folder (it is a Claude Code plugin; the skills work without it):
+It is a Claude Code plugin, installed apart from the skills (which work without it). From the
+repo folder:
 
 ```bash
-claude plugin marketplace add "$PWD"
-claude plugin install study-companion@study-skills
+./install.sh --panel    # skills already installed: adds only the panel; run again to update it
 ```
 
 New sessions load it. Mods are an early-access Claude Code feature, so their API may change.
@@ -162,7 +162,7 @@ Run the tests: `cd tests && python3 -m unittest test_study_state test_verify_lin
 
 ```bash
 ./install.sh --uninstall   # removes the skills; your plans and ~/.study stay untouched
-claude plugin uninstall study-companion@study-skills   # the panel, if you installed it
+./install.sh --uninstall --panel   # the same, plus the panel
 ```
 
 Changes per version: [CHANGELOG.md](CHANGELOG.md).

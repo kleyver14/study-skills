@@ -111,11 +111,11 @@ corregir y última evaluación, más botones para el siguiente paso (*Abrir S05*
   carpeta del plan.
 - Si llevas 7 días o más sin estudiar, una sesión de estudio te lo recuerda al iniciar.
 
-Se instala desde la carpeta del repo (es un plugin de Claude Code; las skills funcionan sin él):
+Es un plugin de Claude Code y se instala aparte de las skills, que funcionan sin él. Desde la
+carpeta del repo:
 
 ```bash
-claude plugin marketplace add "$PWD"
-claude plugin install study-companion@study-skills
+./install.sh --panel    # con las skills ya instaladas agrega solo el panel; repetirlo lo actualiza
 ```
 
 Las sesiones nuevas lo cargan. Los mods son una función en acceso anticipado de Claude Code, así
@@ -165,7 +165,7 @@ Para correr los tests: `cd tests && python3 -m unittest test_study_state test_ve
 
 ```bash
 ./install.sh --uninstall   # quita las skills; tus planes y ~/.study quedan intactos
-claude plugin uninstall study-companion@study-skills   # el panel, si lo instalaste
+./install.sh --uninstall --panel   # lo mismo, más el panel
 ```
 
 Cambios por versión: [CHANGELOG.md](CHANGELOG.md).
