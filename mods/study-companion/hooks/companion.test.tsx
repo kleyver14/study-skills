@@ -5,7 +5,7 @@ import { countPending, statusLine, toSummary } from './register'
 const STATUS = {
   total: 28,
   closed: 4,
-  next: { session: 5, title: 'Auditoría: CloudTrail', status: 'pending', planned_date: '2026-09-28' },
+  next: { session: 5, title: 'Auditoría: logs', status: 'pending', planned_date: '2026-09-28' },
   behind_sessions: 7,
   ahead_sessions: 0,
   buffer_total: 3,
@@ -14,7 +14,7 @@ const STATUS = {
   projected_end: '2027-03-24',
   last_eval: { session: 4, score: '8/8', passed: true, date: '2026-09-25' },
   days_since_last_activity: 12,
-  plan: { slug: 'aws-clf-c02', topic: 'AWS CLF-C02', language: 'es' },
+  plan: { slug: 'demo-plan', topic: 'Demo plan', language: 'es' },
 }
 
 const PLAN = [
@@ -35,9 +35,9 @@ describe('summary helpers', () => {
   })
 
   test('status line names plan, next session, progress and drift', () => {
-    expect(statusLine(toSummary(STATUS, 3))).toBe('📚 aws-clf-c02 · S05 · 4/28 · 7 atrás')
+    expect(statusLine(toSummary(STATUS, 3))).toBe('📚 demo-plan · S05 · 4/28 · 7 atrás')
     const onTrack = toSummary({ ...STATUS, behind_sessions: 0, plan: { ...STATUS.plan, language: 'en' } }, 0)
-    expect(statusLine(onTrack)).toBe('📚 aws-clf-c02 · S05 · 4/28')
+    expect(statusLine(onTrack)).toBe('📚 demo-plan · S05 · 4/28')
   })
 })
 
@@ -62,7 +62,7 @@ test('/study-today answers from the script without the model and fills the pane'
     origin: { kind: 'composer' },
     presentation: { isFullscreen: true, columns: 160 },
   })
-  expect(ran.text).toContain('S05 · Auditoría: CloudTrail (pendiente)')
+  expect(ran.text).toContain('S05 · Auditoría: logs (pendiente)')
   expect(ran.text).toContain('7 sesiones de atraso')
   expect(ran.text).toContain('Conceptos por corregir: 3')
 
@@ -107,5 +107,5 @@ test('the status line shows only once the session studies', async ($, on) => {
   expect(shown.filter(text => text !== undefined)).toEqual([])
 
   await $.skill.prompt({ skill: 'study-next', text: 'open the next session' })
-  expect(shown.at(-1)).toBe('📚 aws-clf-c02 · S05 · 4/28 · 7 atrás')
+  expect(shown.at(-1)).toBe('📚 demo-plan · S05 · 4/28 · 7 atrás')
 })
