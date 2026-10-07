@@ -76,7 +76,8 @@ If one is missing, tell the user and stop.
    ```bash
    ./install.sh --panel
    ```
-   With the skills already installed it adds only the panel. It needs the `claude` command.
+   With the skills already installed it adds only the panel. It needs the `claude` command. It
+   copies the panel to `~/.study/panel/`, so deleting this folder afterwards does not break it.
    Tell them it loads in **new** sessions; sessions already open keep running without it.
 
 ## Update

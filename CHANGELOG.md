@@ -14,6 +14,11 @@ All notable changes to this project are documented here. The format is based on
   adds only the panel. `--uninstall --panel` removes it and `--check` reports it.
 - The end of a plain install mentions the optional panel.
 
+### Fixed
+
+- The panel no longer breaks when the downloaded folder is deleted: `--panel` copies it to
+  `~/.study/panel/` and registers it from there.
+
 ## [0.2.0] - 2026-10-07
 
 ### Added

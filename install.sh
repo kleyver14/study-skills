@@ -9,6 +9,8 @@ DEST="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 BACKUP_ROOT="${STUDY_HOME:-$HOME/.study}/backup"
 SKILLS=(study-shared study-new study-next study-eval study-close study-status)
 PANEL="study-companion@study-skills"
+# Claude Code reads a folder marketplace in place: keep the panel where deleting the download cannot break it.
+PANEL_HOME="${STUDY_HOME:-$HOME/.study}/panel"
 
 mode=copy force=0 panel=0
 for arg in "$@"; do
@@ -53,10 +55,15 @@ panel_installed() {
     claude plugin list 2>/dev/null | grep -q "$PANEL"
 }
 
-# Add this folder as a marketplace, then install the panel or bring it up to date.
+# Copy the panel to PANEL_HOME, register it there, then install it or bring it up to date.
 install_panel() {
     has_claude || return 0
-    claude plugin marketplace add "$REPO" >/dev/null
+    rm -rf "$PANEL_HOME"
+    mkdir -p "$PANEL_HOME/mods"
+    cp -R "$REPO/.claude-plugin" "$PANEL_HOME/"
+    cp -R "$REPO/mods/study-companion" "$PANEL_HOME/mods/"
+    rm -rf "$PANEL_HOME/mods/study-companion/.claude-plugin/types"
+    claude plugin marketplace add "$PANEL_HOME" >/dev/null
     claude plugin marketplace update study-skills >/dev/null
     if panel_installed; then
         claude plugin update "$PANEL"
@@ -74,7 +81,11 @@ case "$mode" in
         for s in "${SKILLS[@]}"; do
             if [ -L "$DEST/$s" ] || [ -d "$DEST/$s" ]; then rm -rf "$DEST/$s"; echo "removed $DEST/$s"; fi
         done
-        if [ "$panel" -eq 1 ] && has_claude && panel_installed; then claude plugin uninstall "$PANEL"; fi
+        if [ "$panel" -eq 1 ] && has_claude; then
+            if panel_installed; then claude plugin uninstall "$PANEL"; fi
+            claude plugin marketplace remove study-skills >/dev/null 2>&1 || true
+            rm -rf "$PANEL_HOME"
+        fi
         echo "Your plans and ~/.study were not touched." ;;
     copy|link)
         check_python
