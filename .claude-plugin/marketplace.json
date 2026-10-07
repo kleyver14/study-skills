@@ -8,7 +8,7 @@
     {
       "name": "study-companion",
       "source": "./mods/study-companion",
-      "description": "Pane, status line and a no-model /study-today command for the study-* skills"
+      "description": "Pane, status line and a no-model /study-panel command for the study-* skills"
     }
   ]
 }

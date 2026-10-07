@@ -41,7 +41,7 @@ describe('summary helpers', () => {
   })
 })
 
-test('/study-today answers from the script without the model and fills the pane', async ($, on) => {
+test('/study-panel answers from the script without the model and fills the pane', async ($, on) => {
   on('env.get', () => ({ value: '/home/test' }))
   on('process.run', ($, e) => ({
     value: {
@@ -63,7 +63,7 @@ test('/study-today answers from the script without the model and fills the pane'
   })
 
   const ran = await $.command.run({
-    command: 'study-today',
+    command: 'study-panel',
     args: '',
     origin: { kind: 'composer' },
     presentation: { isFullscreen: true, columns: 160 },
@@ -88,7 +88,7 @@ test('/study-today answers from the script without the model and fills the pane'
   expect(commands).toEqual(['study-next', 'study-next'])
 })
 
-test('the status line shows only once the session studies', async ($, on) => {
+test('a study command shows the status line and opens the pane once', async ($, on) => {
   const shown: (string | undefined)[] = []
   on('env.get', () => ({ value: '/home/test' }))
   on('process.run', ($, e) => ({
@@ -110,10 +110,19 @@ test('the status line shows only once the session studies', async ($, on) => {
   on('clock.every', () => ({ value: undefined }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('skill.prompt', ($, e) => ({ text: e.text }))
+  const opened: string[] = []
+  on('ui.open', ($, e) => {
+    opened.push(e.id)
+    return { value: { isPlaced: true } }
+  })
 
   await $.session.start({ cwd: '/work/other-repo', surface: 'terminal', isInteractive: true })
   expect(shown.filter(text => text !== undefined)).toEqual([])
 
   await $.skill.prompt({ skill: 'study-next', text: 'open the next session' })
   expect(shown.at(-1)).toBe('📚 demo-plan · S05 · 4/28 · 7 atrás')
+  expect(opened).toEqual(['study'])
+
+  await $.skill.prompt({ skill: 'study-eval', text: 'evaluate it' })
+  expect(opened).toEqual(['study'])
 })

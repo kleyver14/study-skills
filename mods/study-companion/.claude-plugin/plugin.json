@@ -1,7 +1,7 @@
 {
   "name": "study-companion",
-  "version": "0.1.2",
-  "description": "Pane, status line and a no-model /study-today command for the study-* skills",
+  "version": "0.1.3",
+  "description": "Pane, status line and a no-model /study-panel command for the study-* skills",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Kleyver Artigas"

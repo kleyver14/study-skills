@@ -8,8 +8,10 @@ const REFRESH_MS = 10 * 60 * 1000
 const IDLE_DAYS = 7
 const summary = atom({ plugin: 'study-companion', key: 'summary' } as const, null)
 const problem = atom({ plugin: 'study-companion', key: 'problem' } as const, null)
-// Set once the session studies: a study-* skill ran, /study-today, or it opened in the plan folder.
+// Set once the session studies: a study-* skill ran, /study-panel, or it opened in the plan folder.
 const isActive = atom({ plugin: 'study-companion', key: 'isActive' } as const, false)
+// The pane opens by itself once per session, on the first study command.
+const wasPaneOpened = atom({ plugin: 'study-companion', key: 'wasPaneOpened' } as const, false)
 
 type Words = typeof WORDS.en
 
@@ -196,6 +198,11 @@ async function refresh($: EngineInterface): Promise<StudySummary | null> {
   return loaded
 }
 
+async function openPane($: EngineInterface, loaded: StudySummary | null): Promise<void> {
+  await update($, wasPaneOpened, () => true)
+  await $.ui.open({ id: PANE, title: loaded ? words(loaded.language).title : 'Study' })
+}
+
 // The action that moves the current session forward, by its state.
 function nextStep(s: StudySummary, t: Words): { label: string; command: string } | null {
   if (!s.next) return null
@@ -219,8 +226,8 @@ const bar = (done: number, total: number, width: number) => {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'study-today',
-      description: 'Where your active study plan stands, without calling the model; opens the study pane',
+      name: 'study-panel',
+      description: 'Open the study panel: where your active plan stands, without calling the model',
     })
     const plan = await resolvePlan($).catch(() => null)
     const isInPlan = plan !== null && (e.cwd === plan.path || e.cwd.startsWith(`${plan.path}/`))
@@ -233,9 +240,9 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'study-today' }, async $ => {
+  on('command.run', { command: 'study-panel' }, async $ => {
     const loaded = await activate($)
-    await $.ui.open({ id: PANE, title: loaded ? words(loaded.language).title : 'Study' })
+    await openPane($, loaded)
     if (!loaded) return { text: (await read($, problem)) ?? 'No active study plan.' }
 
     return { text: summaryText(loaded) }
@@ -243,7 +250,10 @@ export const register: Register = on => {
 
   on('skill.prompt', async ($, e, next) => {
     const prompt = await next(e)
-    if (e.skill.startsWith('study-')) await activate($)
+    if (e.skill.startsWith('study-')) {
+      const loaded = await activate($)
+      if (!(await read($, wasPaneOpened))) await openPane($, loaded)
+    }
 
     return prompt
   })
