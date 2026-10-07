@@ -55,6 +55,12 @@ test('/study-today answers from the script without the model and fills the pane'
   on('fs.read', () => ({ value: PLAN }))
   on('ui.status', () => ({ value: undefined }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
+  const commands: string[] = []
+  on('ui.toast', () => ({ value: undefined }))
+  on('command.run', ($, e) => {
+    commands.push(e.command)
+    return { text: '' }
+  })
 
   const ran = await $.command.run({
     command: 'study-today',
@@ -76,8 +82,10 @@ test('/study-today answers from the script without the model and fills the pane'
     })
     expect(await ui.find({ type: 'Button', key: 'step', text: 'Abrir S05' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /12 días sin estudiar/ })).toBeDefined()
+    await ui.press({ key: 'step' })
     await ui.unmount()
   }
+  expect(commands).toEqual(['study-next', 'study-next'])
 })
 
 test('the status line shows only once the session studies', async ($, on) => {

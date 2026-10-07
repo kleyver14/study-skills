@@ -40,7 +40,8 @@ const WORDS = {
     close: 'Close session',
     details: 'Full status',
     refresh: 'Refresh',
-    hide: 'Hide',
+    hide: 'Close pane',
+    running: (command: string) => `Running /${command}…`,
     opened: 'Study pane opened.',
     nudge: (days: number, slug: string) => `${days} days since you last studied ${slug} · /study-next`,
   },
@@ -70,7 +71,8 @@ const WORDS = {
     close: 'Cerrar sesión',
     details: 'Estado completo',
     refresh: 'Actualizar',
-    hide: 'Ocultar',
+    hide: 'Cerrar panel',
+    running: (command: string) => `Ejecutando /${command}…`,
     opened: 'Panel de estudio abierto.',
     nudge: (days: number, slug: string) => `Hace ${days} días que no estudias ${slug} · /study-next`,
   },
@@ -195,16 +197,23 @@ async function refresh($: EngineInterface): Promise<StudySummary | null> {
 }
 
 // The action that moves the current session forward, by its state.
-function nextStep(s: StudySummary, t: Words): { label: string; prompt: string } | null {
+function nextStep(s: StudySummary, t: Words): { label: string; command: string } | null {
   if (!s.next) return null
-  if (s.next.status === 'studied') return { label: t.evaluate, prompt: '/study-eval' }
-  if (s.next.status === 'evaluated') return { label: t.close, prompt: '/study-close' }
-  return { label: t.open(pad(s.next.session)), prompt: '/study-next' }
+  if (s.next.status === 'studied') return { label: t.evaluate, command: 'study-eval' }
+  if (s.next.status === 'evaluated') return { label: t.close, command: 'study-close' }
+  return { label: t.open(pad(s.next.session)), command: 'study-next' }
 }
 
+// Runs a slash command as if typed; the toast confirms the click or says why it failed.
+async function runCommand($: EngineInterface, t: Words, command: string): Promise<void> {
+  $.ui.toast(t.running(command))
+  await $.command.run({ command }).catch((error: unknown) => $.ui.toast(`/${command}: ${String(error)}`, { timeoutMs: 8000 }))
+}
+
+// Box-drawing lines render in every surface's font, unlike shade blocks.
 const bar = (done: number, total: number, width: number) => {
   const filled = total > 0 ? Math.round((done / total) * width) : 0
-  return '█'.repeat(filled) + '░'.repeat(width - filled)
+  return { filled: '━'.repeat(filled), empty: '─'.repeat(width - filled) }
 }
 
 export const register: Register = on => {
@@ -263,7 +272,8 @@ export const register: Register = on => {
 
     const t = words(s.language)
     const step = nextStep(s, t)
-    const width = Math.max(8, Math.min(28, e.props.bodyColumns - 8))
+    const width = Math.max(8, Math.min(24, e.props.bodyColumns - 12))
+    const progress = bar(s.closed, s.total, width)
     const drift = s.behind > 0 ? t.behind(s.behind) : s.ahead > 0 ? t.ahead(s.ahead) : t.onTrack
     const isIdle = s.daysIdle !== null && s.daysIdle >= IDLE_DAYS
 
@@ -272,7 +282,8 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Text bold>{s.topic}</Text>
           <Text>
-            {bar(s.closed, s.total, width)} {s.closed}/{s.total}
+            <Text color="green">{progress.filled}</Text>
+            <Text dimColor>{progress.empty}</Text> {s.closed}/{s.total}
           </Text>
         </Box>
         <Box flexDirection="column">
@@ -311,13 +322,13 @@ export const register: Register = on => {
             <Button
               key="step"
               label={step.label}
-              hotkey="n"
+             
               variant="primary"
-              onPress={() => void $.prompt.submit({ text: step.prompt })}
+              onPress={() => runCommand($, t, step.command)}
             />
           )}
-          <Button key="details" label={t.details} hotkey="s" onPress={() => void $.prompt.submit({ text: '/study-status' })} />
-          <Button key="refresh" label={t.refresh} hotkey="r" onPress={() => void refresh($)} />
+          <Button key="details" label={t.details} onPress={() => runCommand($, t, 'study-status')} />
+          <Button key="refresh" label={t.refresh} onPress={() => void refresh($)} />
           <Button key="hide" label={t.hide} role="dismiss" onPress={() => void $.ui.close({ id: PANE })} />
         </Box>
       </Box>

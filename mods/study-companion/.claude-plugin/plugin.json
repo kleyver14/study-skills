@@ -1,6 +1,6 @@
 {
   "name": "study-companion",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pane, status line and a no-model /study-today command for the study-* skills",
   "types": "./types/index.d.ts",
   "author": {
