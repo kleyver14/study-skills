@@ -1,0 +1,14 @@
+{
+  "name": "study-skills",
+  "description": "Optional mods for the study-* skills",
+  "owner": {
+    "name": "Kleyver Artigas"
+  },
+  "plugins": [
+    {
+      "name": "study-companion",
+      "source": "./mods/study-companion",
+      "description": "Pane, status line and a no-model /study-today command for the study-* skills"
+    }
+  ]
+}
