@@ -27,6 +27,6 @@ export type StudySummary = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'study-companion': { summary: StudySummary | null; problem: string | null }
+    'study-companion': { summary: StudySummary | null; problem: string | null; isActive: boolean }
   }
 }

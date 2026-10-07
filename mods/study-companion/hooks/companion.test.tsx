@@ -79,3 +79,33 @@ test('/study-today answers from the script without the model and fills the pane'
     await ui.unmount()
   }
 })
+
+test('the status line shows only once the session studies', async ($, on) => {
+  const shown: (string | undefined)[] = []
+  on('env.get', () => ({ value: '/home/test' }))
+  on('process.run', ($, e) => ({
+    value: {
+      exitCode: 0,
+      stdout: e.argv.includes('resolve') ? '/plans/aws\n' : JSON.stringify(STATUS),
+      stderr: '',
+      isStdoutTruncated: false,
+      isStderrTruncated: false,
+    },
+  }))
+  on('fs.read', () => ({ value: PLAN }))
+  on('ui.status', ($, e) => {
+    shown.push(e.text)
+    return { value: undefined }
+  })
+  on('ui.toast', () => ({ value: undefined }))
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
+  on('clock.every', () => ({ value: undefined }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('skill.prompt', ($, e) => ({ text: e.text }))
+
+  await $.session.start({ cwd: '/work/other-repo', surface: 'terminal', isInteractive: true })
+  expect(shown.filter(text => text !== undefined)).toEqual([])
+
+  await $.skill.prompt({ skill: 'study-next', text: 'open the next session' })
+  expect(shown.at(-1)).toBe('📚 aws-clf-c02 · S05 · 4/28 · 7 atrás')
+})

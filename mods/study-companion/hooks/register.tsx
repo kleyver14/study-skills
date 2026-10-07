@@ -8,6 +8,8 @@ const REFRESH_MS = 10 * 60 * 1000
 const IDLE_DAYS = 7
 const summary = atom({ plugin: 'study-companion', key: 'summary' } as const, null)
 const problem = atom({ plugin: 'study-companion', key: 'problem' } as const, null)
+// Set once the session studies: a study-* skill ran, /study-today, or it opened in the plan folder.
+const isActive = atom({ plugin: 'study-companion', key: 'isActive' } as const, false)
 
 type Words = typeof WORDS.en
 
@@ -130,16 +132,21 @@ export function toSummary(raw: RawStatus, pendingConcepts: number): StudySummary
   }
 }
 
-async function load($: EngineInterface): Promise<StudySummary | string> {
+async function resolvePlan($: EngineInterface): Promise<{ script: string; path: string } | null> {
   const home = await $.env.get('HOME')
   const script = `${home}/.claude/skills/study-shared/scripts/study_state.py`
   const resolved = await $.process.run(['python3', script, 'registry', 'resolve'])
-  if (resolved.exitCode !== 0) return 'No active study plan: /study-new'
-  const path = resolved.stdout.trim()
+  return resolved.exitCode === 0 ? { script, path: resolved.stdout.trim() } : null
+}
+
+async function load($: EngineInterface): Promise<StudySummary | string> {
+  const plan = await resolvePlan($)
+  if (!plan) return 'No active study plan: /study-new'
+  const { script, path } = plan
   const status = await $.process.run(['python3', script, 'status', path])
   if (status.exitCode !== 0) return `study_state.py failed: ${status.stderr.trim().slice(0, 160)}`
-  const plan = await $.fs.read(`${path}/PLAN.md`).then(text => (typeof text === 'string' ? text : ''), () => '')
-  return toSummary(JSON.parse(status.stdout) as RawStatus, countPending(plan))
+  const planText = await $.fs.read(`${path}/PLAN.md`).then(text => (typeof text === 'string' ? text : ''), () => '')
+  return toSummary(JSON.parse(status.stdout) as RawStatus, countPending(planText))
 }
 
 export function statusLine(s: StudySummary): string {
@@ -163,7 +170,18 @@ export function summaryText(s: StudySummary): string {
   return lines.join('\n')
 }
 
+async function activate($: EngineInterface): Promise<StudySummary | null> {
+  await update($, isActive, () => true)
+
+  return refresh($)
+}
+
+// Only a study session reads the plan and shows the status line.
 async function refresh($: EngineInterface): Promise<StudySummary | null> {
+  if (!(await read($, isActive))) {
+    $.ui.status(undefined)
+    return null
+  }
   const loaded = await load($).catch((error: unknown) => `study-companion: ${String(error)}`)
   if (typeof loaded === 'string') {
     await update($, problem, () => loaded)
@@ -195,7 +213,9 @@ export const register: Register = on => {
       name: 'study-today',
       description: 'Where your active study plan stands, without calling the model; opens the study pane',
     })
-    const loaded = await refresh($)
+    const plan = await resolvePlan($).catch(() => null)
+    const isInPlan = plan !== null && (e.cwd === plan.path || e.cwd.startsWith(`${plan.path}/`))
+    const loaded = isInPlan ? await activate($) : await refresh($)
     if (loaded && loaded.daysIdle !== null && loaded.daysIdle >= IDLE_DAYS) {
       $.ui.toast(words(loaded.language).nudge(loaded.daysIdle, loaded.slug), { timeoutMs: 8000 })
     }
@@ -205,11 +225,18 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'study-today' }, async $ => {
-    const loaded = await refresh($)
+    const loaded = await activate($)
     await $.ui.open({ id: PANE, title: loaded ? words(loaded.language).title : 'Study' })
     if (!loaded) return { text: (await read($, problem)) ?? 'No active study plan.' }
 
     return { text: summaryText(loaded) }
+  })
+
+  on('skill.prompt', async ($, e, next) => {
+    const prompt = await next(e)
+    if (e.skill.startsWith('study-')) await activate($)
+
+    return prompt
   })
 
   // A study command may have changed the plan: re-read it once the turn ends.
