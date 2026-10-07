@@ -25,7 +25,19 @@ cd study-skills
 ```
 
 Then open a new Claude Code session. You can also hand the repo link to your agent and ask it
-to *"install these skills"*.
+to *"install these skills"*: it installs or updates as needed.
+
+### Update
+
+From the new version's folder:
+
+```bash
+./install.sh --check            # installed version vs this folder's, and whether the panel is installed
+./install.sh --force --panel    # update the skills and the panel (drop --panel if you do not use it)
+```
+
+The previous skills are kept in `~/.study/backup/`, and your plans are never touched. Open a new
+session afterwards. [CHANGELOG.md](CHANGELOG.md) lists what changed.
 
 ## Usage
 

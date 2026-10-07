@@ -13,6 +13,14 @@ All notable changes to this project are documented here. The format is based on
 - `install.sh --panel` installs or updates the study panel; with the skills already installed it
   adds only the panel. `--uninstall --panel` removes it and `--check` reports it.
 - The end of a plain install mentions the optional panel.
+- `./install.sh --check` reports the installed version next to the folder's, and the panel's.
+- `INSTALL.md` starts by checking what is installed and splits into first installation and
+  update, so an agent shows the user what changed before updating.
+- README: an *Update* section.
+
+### Changed
+
+- The version file moved to `skills/study-shared/VERSION`, so an installed copy knows its version.
 
 ### Fixed
 

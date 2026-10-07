@@ -41,7 +41,14 @@ verify() {
     [ "$missing" -eq 0 ] || { echo "error: installation incomplete in $DEST" >&2; exit 1; }
     python3 "$DEST/study-shared/scripts/study_state.py" today >/dev/null
     echo "study_state.py runs: ok"
-    echo "version: $(cat "$REPO/VERSION" 2>/dev/null || echo unknown)"
+}
+
+# The version travels inside study-shared, so the installed copy knows its own.
+installed_version() { cat "$DEST/study-shared/VERSION" 2>/dev/null || echo "unknown (0.2.0 or older)"; }
+folder_version() { cat "$REPO/skills/study-shared/VERSION"; }
+
+panel_version() {
+    claude plugin list 2>/dev/null | grep -A4 "$PANEL" | sed -n 's/.*Version: *//p' | head -n 1
 }
 
 has_claude() {
@@ -75,8 +82,19 @@ install_panel() {
 
 case "$mode" in
     check)
-        check_python; verify
-        if command -v claude >/dev/null && panel_installed; then echo "panel: installed"; else echo "panel: not installed (optional: ./install.sh --panel)"; fi ;;
+        check_python
+        if [ -f "$DEST/study-shared/SKILL.md" ]; then
+            verify
+            echo "installed version: $(installed_version)"
+        else
+            echo "skills: not installed in $DEST"
+        fi
+        echo "this folder: $(folder_version)"
+        if command -v claude >/dev/null && panel_installed; then
+            echo "panel: installed ($(panel_version))"
+        else
+            echo "panel: not installed (optional: ./install.sh --panel)"
+        fi ;;
     uninstall)
         for s in "${SKILLS[@]}"; do
             if [ -L "$DEST/$s" ] || [ -d "$DEST/$s" ]; then rm -rf "$DEST/$s"; echo "removed $DEST/$s"; fi
@@ -115,6 +133,7 @@ case "$mode" in
         done
         echo "installed (${mode}) in $DEST:"
         verify
+        echo "version: $(installed_version)"
         if [ "$panel" -eq 1 ]; then install_panel; fi
         cat <<'USAGE'
 

@@ -25,7 +25,19 @@ cd study-skills
 ```
 
 Después abre una sesión nueva de Claude Code. También puedes pasarle el link del repo a tu agente
-y pedirle: *"instala estas skills"*.
+y pedirle: *"instala estas skills"*: instala o actualiza según corresponda.
+
+### Actualizar
+
+Desde la carpeta de la versión nueva:
+
+```bash
+./install.sh --check            # versión instalada vs la de esta carpeta, y si el panel está instalado
+./install.sh --force --panel    # actualiza las skills y el panel (quita --panel si no lo usas)
+```
+
+Las skills anteriores quedan en `~/.study/backup/` y tus planes no se tocan nunca. Después abre una
+sesión nueva. [CHANGELOG.md](CHANGELOG.md) dice qué cambió.
 
 ## Uso
 
