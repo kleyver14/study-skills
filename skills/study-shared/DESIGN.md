@@ -7,13 +7,11 @@
 ## 1. Purpose
 
 Let anyone build and run a study plan on **any topic**, with **any duration and cadence**, with
-the same discipline as a real AWS CLF-C02 plan put together by hand: a syllabus taken from
-verified sources, sessions with material and practice, evaluations with a threshold, errors
-corrected one at a time, notes in the user's own words, and progress tracking that any future
-session can read.
+the same discipline throughout: a syllabus taken from verified sources, sessions with material
+and practice, evaluations with a threshold, errors corrected one at a time, notes in the user's
+own words, and progress tracking that any future session can read.
 
-That plan was the **reference example**, not the mould. The templates contain nothing specific
-to AWS.
+The templates contain nothing specific to any topic.
 
 ## 2. Scope decisions
 
@@ -535,7 +533,7 @@ only) · `study-shared/references/videos.md` (new) · `study-shared/templates/se
 
 ## 13. Iteration 2 — protocol, practice and quality decisions
 
-> Taken on 2026-09-23 from the iteration 1 tests and the real use of an AWS CLF-C02 plan. The
+> Taken on 2026-09-23 from the iteration 1 tests and real use of a plan. The
 > operational detail lives in `references/`; the reasons stay here.
 
 ### 13.1 Evaluation
@@ -599,7 +597,6 @@ only) · `study-shared/references/videos.md` (new) · `study-shared/templates/se
 
 ## 14. Reference
 
-The real AWS CLF-C02 plan that gave rise to this family is the reference example for *content
-quality* (analogies, commented commands, verified readings, protocol). It is **not** a reference
-for structure: it uses folders per week and dates in file names, which this design replaces with
-flat sessions and state in frontmatter.
+The first hand-made plan this family grew out of set the bar for *content quality* (analogies,
+commented commands, verified readings, protocol), not for structure: it used folders per week
+and dates in file names, which this design replaces with flat sessions and state in frontmatter.
