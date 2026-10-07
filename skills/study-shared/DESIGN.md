@@ -44,10 +44,10 @@ study-status   state, drift, projection; switch the active plan; replan
 study-shared   templates + references. Not user-invocable
 ```
 
-Same pattern as `sdd-*`: each `SKILL.md` is short and loads only what its command needs; the
+Each `SKILL.md` is short and loads only what its command needs; the
 templates and references live once, in `study-shared`.
 
-The `SKILL.md` files are written in **English** (house style). Everything generated for the user
+The `SKILL.md` files are written in **English**. Everything generated for the user
 goes in the plan language.
 
 ### 3.2 Plan registry
