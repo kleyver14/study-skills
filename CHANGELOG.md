@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-07
+
+### Added
+
+- Optional study panel, `mods/study-companion` (Claude Code plugin, early-access mods API):
+  - `/study-panel` opens a panel with progress, next session, drift, projected end, buffer,
+    concepts to fix and the last evaluation, answered by `study_state.py` without the model;
+  - buttons for the next step of the cycle (open, evaluate or close the session) and the full status;
+  - the first study command of a session opens the panel once;
+  - a status line shown only in study sessions;
+  - a reminder after 7 days without studying.
+- `.claude-plugin/marketplace.json` so the mod installs with `claude plugin install
+  study-companion@study-skills`.
+
 ## [0.1.0] - 2026-09-30
 
 First public release.
@@ -27,5 +41,6 @@ First public release.
 - `install.sh` with `--link`, `--force`, `--check` and `--uninstall`; `INSTALL.md` for agents.
 - Offline test suite with synthetic fixtures.
 
-[Unreleased]: https://github.com/kleyver14/study-skills/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kleyver14/study-skills/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/kleyver14/study-skills/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kleyver14/study-skills/releases/tag/v0.1.0

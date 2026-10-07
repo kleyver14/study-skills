@@ -69,6 +69,15 @@ If one is missing, tell the user and stop.
      the one they ask for explicitly), and the conversation follows whatever language they write
      in. Spanish, English and Portuguese have fixed texts; other languages get English labels or a
      one-time translation.
+7. **Optional, ask the user first:** the study panel (`mods/study-companion`), a Claude Code
+   plugin that adds `/study-panel`, a panel with the plan's state and buttons, and a status
+   line in study sessions only. The skills work fully without it. With their yes, from the repo
+   folder:
+   ```bash
+   claude plugin marketplace add "$PWD"
+   claude plugin install study-companion@study-skills
+   ```
+   Tell them it loads in **new** sessions; sessions already open keep running without it.
 
 ## Update
 
@@ -76,6 +85,14 @@ If one is missing, tell the user and stop.
 - Installed as a copy: `git pull`, then `./install.sh --force`.
 
 Existing plans are not modified by an update.
+
+The panel, if installed, runs from a copy Claude Code made at install time, so it needs its own
+update; new sessions pick it up:
+
+```bash
+claude plugin marketplace update study-skills
+claude plugin update study-companion@study-skills
+```
 
 The installed version is in the repo's `VERSION` file (`./install.sh --check` prints it), and
 [CHANGELOG.md](CHANGELOG.md) lists what changed in each one. Tell the user what changed.
@@ -86,7 +103,8 @@ The installed version is in the repo's `VERSION` file (`./install.sh --check` pr
 ./install.sh --uninstall
 ```
 
-Removes only the six `study-*` folders. It does **not** touch the user's plans or `~/.study/`; if
+Removes only the six `study-*` folders. The panel is removed with
+`claude plugin uninstall study-companion@study-skills`. It does **not** touch the user's plans or `~/.study/`; if
 the user wants those gone too, they delete them themselves.
 
 ## Manual installation (without `install.sh`)

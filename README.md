@@ -96,6 +96,28 @@ frontmatter, and the `PLAN.md` sections between `<!-- study:… -->` markers are
 the skills, so do not edit those by hand. You can run several plans and switch between them
 with `/study-status all`.
 
+## Optional: the study panel (mod)
+
+`mods/study-companion` adds a panel to Claude Code (terminal and desktop app) with where your
+active plan stands: progress, next session, drift, projected end, buffer, concepts to fix and
+the last evaluation, plus buttons for the next step (*Open S05*, *Evaluate* or *Close session*,
+depending on where the session is) and the full status.
+
+- `/study-panel` opens it, answering from `study_state.py` without calling the model.
+- The first study command of a session opens it by itself, once; close it and it stays closed.
+- A status line such as `📚 my-plan · S05 · 4/28 · 7 behind` shows only in study sessions:
+  after a `study-*` skill runs, after `/study-panel`, or when the session opens in the plan folder.
+- After 7 days without studying, a study session greets you with a reminder.
+
+Install it from the repo folder (it is a Claude Code plugin; the skills work without it):
+
+```bash
+claude plugin marketplace add "$PWD"
+claude plugin install study-companion@study-skills
+```
+
+New sessions load it. Mods are an early-access Claude Code feature, so their API may change.
+
 ## Principles
 
 - **Nothing invented.** Every link goes through `verify_links.py` before it is written, and every
@@ -120,6 +142,8 @@ skills/
     ├── scripts/        study_state.py (state), verify_links.py, platzi.py (stdlib only)
     ├── templates/      plan, session and diagnostic
     └── references/     evaluation protocol, recovery, practice, videos, language, labels
+mods/study-companion/   optional panel, status line and /study-panel (Claude Code plugin)
+.claude-plugin/         marketplace that lists the mod
 tests/                  unittest, no network
 install.sh
 ```
@@ -138,6 +162,7 @@ Run the tests: `cd tests && python3 -m unittest test_study_state test_verify_lin
 
 ```bash
 ./install.sh --uninstall   # removes the skills; your plans and ~/.study stay untouched
+claude plugin uninstall study-companion@study-skills   # the panel, if you installed it
 ```
 
 Changes per version: [CHANGELOG.md](CHANGELOG.md).

@@ -97,6 +97,30 @@ frontmatter, y las secciones de `PLAN.md` entre marcadores `<!-- study:… -->` 
 skill, así que no conviene editarlas a mano. Puedes tener varios planes a la vez y cambiar entre
 ellos con `/study-status all`.
 
+## Opcional: el panel de estudio (mod)
+
+`mods/study-companion` agrega a Claude Code (terminal y app de escritorio) un panel con el estado
+de tu plan activo: progreso, próxima sesión, atraso, fin proyectado, buffer, conceptos por
+corregir y última evaluación, más botones para el siguiente paso (*Abrir S05*, *Evaluar* o
+*Cerrar sesión*, según dónde estés) y el estado completo.
+
+- `/study-panel` lo abre y responde desde `study_state.py`, sin llamar al modelo.
+- El primer comando de estudio de la sesión lo abre solo, una vez; si lo cierras, queda cerrado.
+- Una línea de estado como `📚 mi-plan · S05 · 4/28 · 7 atrás` aparece solo en sesiones de
+  estudio: después de usar una skill `study-*`, de `/study-panel`, o si la sesión se abre en la
+  carpeta del plan.
+- Si llevas 7 días o más sin estudiar, una sesión de estudio te lo recuerda al iniciar.
+
+Se instala desde la carpeta del repo (es un plugin de Claude Code; las skills funcionan sin él):
+
+```bash
+claude plugin marketplace add "$PWD"
+claude plugin install study-companion@study-skills
+```
+
+Las sesiones nuevas lo cargan. Los mods son una función en acceso anticipado de Claude Code, así
+que su API puede cambiar.
+
 ## Principios
 
 - **Nada inventado.** Todo link pasa por `verify_links.py` antes de escribirse, y cada afirmación
@@ -121,6 +145,8 @@ skills/
     ├── scripts/        study_state.py (estado), verify_links.py, platzi.py (solo stdlib)
     ├── templates/      plan, sesión y diagnóstico
     └── references/     protocolo de evaluación, recuperación, práctica, videos, idioma, textos fijos
+mods/study-companion/   panel, línea de estado y /study-panel opcionales (plugin de Claude Code)
+.claude-plugin/         marketplace que lista el mod
 tests/                  unittest, sin red
 install.sh
 ```
@@ -139,6 +165,7 @@ Para correr los tests: `cd tests && python3 -m unittest test_study_state test_ve
 
 ```bash
 ./install.sh --uninstall   # quita las skills; tus planes y ~/.study quedan intactos
+claude plugin uninstall study-companion@study-skills   # el panel, si lo instalaste
 ```
 
 Cambios por versión: [CHANGELOG.md](CHANGELOG.md).
