@@ -86,7 +86,7 @@ case "$mode" in
             claude plugin marketplace remove study-skills >/dev/null 2>&1 || true
             rm -rf "$PANEL_HOME"
         fi
-        echo "Your plans and ~/.study were not touched." ;;
+        if [ "$panel" -eq 1 ]; then echo "Your plans and the rest of ~/.study were not touched."; else echo "Your plans and ~/.study were not touched."; fi ;;
     copy|link)
         check_python
         mkdir -p "$DEST"
